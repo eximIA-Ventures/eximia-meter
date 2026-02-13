@@ -1,0 +1,26 @@
+# Source code (users clone from GitHub during install)
+EximiaMeter/
+EximiaMeterTests/
+Package.swift
+Info.plist
+build-app.sh
+dist/
+.build/
+
+# Design system & docs
+design-system/
+design/
+tech-search/
+expansion-packs/
+Logos/
+docs/
+
+# AIOS framework
+.aios-core/
+.claude/
+
+# IDE & OS
+.DS_Store
+*.xcodeproj
+*.xcworkspace
+.swiftpm/

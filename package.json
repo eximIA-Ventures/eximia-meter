@@ -1,0 +1,33 @@
+{
+  "name": "eximia-meter",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "exímIA Meter — macOS menu bar app for monitoring Claude Code usage",
+  "bin": {
+    "eximia-meter": "./bin/install.mjs"
+  },
+  "files": [
+    "bin/install.mjs"
+  ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "macos",
+    "menu-bar",
+    "usage-monitor",
+    "eximia",
+    "tokens"
+  ],
+  "author": "exímIA",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hugocapitelli/eximia-meter.git"
+  },
+  "os": [
+    "darwin"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
