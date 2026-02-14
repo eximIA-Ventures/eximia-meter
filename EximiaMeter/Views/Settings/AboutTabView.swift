@@ -179,6 +179,17 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v1.3.0", items: [
+                                "Model Distribution: Sonnet now appears via fuzzy matching",
+                                "Per-Project: percentages show share of total usage",
+                                "Per-Project: bar width relative to top project",
+                                "Numbers: 1920M tokens now shows as 1.92B"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v1.2.1", items: [
                                 "Fix: app now auto-reopens after updating"
                             ])

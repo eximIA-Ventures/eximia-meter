@@ -81,7 +81,7 @@ struct ModelDistributionBar: View {
             GeometryReader { geo in
                 HStack(spacing: 1) {
                     ForEach(models, id: \.0) { modelId, pct in
-                        let color = ClaudeModel(rawValue: modelId)?.badgeColor ?? ExTokens.Colors.textMuted
+                        let color = resolveModel(modelId)?.badgeColor ?? ExTokens.Colors.textMuted
                         RoundedRectangle(cornerRadius: 2)
                             .fill(color)
                             .frame(width: max(geo.size.width * CGFloat(pct) - 1, 2))
@@ -95,8 +95,9 @@ struct ModelDistributionBar: View {
             // Legend
             HStack(spacing: 12) {
                 ForEach(models, id: \.0) { modelId, pct in
-                    let name = ClaudeModel(rawValue: modelId)?.shortName ?? modelId
-                    let color = ClaudeModel(rawValue: modelId)?.badgeColor ?? ExTokens.Colors.textMuted
+                    let model = resolveModel(modelId)
+                    let name = model?.shortName ?? modelId
+                    let color = model?.badgeColor ?? ExTokens.Colors.textMuted
                     HStack(spacing: 4) {
                         Circle()
                             .fill(color)
@@ -107,6 +108,71 @@ struct ModelDistributionBar: View {
                     }
                 }
                 Spacer()
+            }
+        }
+    }
+
+    /// Fuzzy match model ID — handles variations like "claude-sonnet-4-5" or "sonnet"
+    private func resolveModel(_ id: String) -> ClaudeModel? {
+        if let exact = ClaudeModel(rawValue: id) { return exact }
+        let lowered = id.lowercased()
+        if lowered.contains("opus") { return .opus }
+        if lowered.contains("sonnet") { return .sonnet }
+        if lowered.contains("haiku") { return .haiku }
+        return nil
+    }
+}
+
+// MARK: - Project Progress Bar (separate bar value from display percentage)
+
+struct ProjectProgressBar: View {
+    let barValue: Double      // 0-1, controls the bar width (relative to max project)
+    let displayPct: Double    // 0-1, the actual percentage shown as text (share of total)
+    let label: String
+    let detail: String?
+
+    private var barColor: Color {
+        if displayPct >= 0.30 {
+            return ExTokens.Colors.statusCritical
+        } else if displayPct >= 0.15 {
+            return ExTokens.Colors.statusWarning
+        } else {
+            return ExTokens.Colors.statusSuccess
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(label)
+                    .font(ExTokens.Typography.subtitle)
+                    .foregroundColor(ExTokens.Colors.textPrimary)
+
+                Spacer()
+
+                Text("\(Int(displayPct * 100))%")
+                    .font(ExTokens.Typography.captionMono)
+                    .foregroundColor(barColor)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: ExTokens.Radius.xs)
+                        .fill(ExTokens.Colors.borderDefault)
+                        .frame(height: 6)
+
+                    RoundedRectangle(cornerRadius: ExTokens.Radius.xs)
+                        .fill(barColor)
+                        .frame(width: geo.size.width * CGFloat(min(barValue, 1.0)), height: 6)
+                        .animation(.easeInOut(duration: 0.5), value: barValue)
+                }
+            }
+            .frame(height: 6)
+
+            if let detail {
+                Text(detail)
+                    .font(ExTokens.Typography.caption)
+                    .foregroundColor(ExTokens.Colors.textMuted)
             }
         }
     }
@@ -153,15 +219,13 @@ struct ProjectUsageSection: View {
                 let maxTokens = sorted.first?.1 ?? 1
 
                 ForEach(sorted, id: \.0) { name, tokens in
-                    // Bar relative to the top project (biggest = 100%)
-                    let pct = maxTokens > 0 ? Double(tokens) / Double(maxTokens) : 0
-                    let totalPct = perProjectTotal > 0 ? Int(Double(tokens) / Double(perProjectTotal) * 100) : 0
-                    ExProgressBar(
-                        value: pct,
+                    let barPct = maxTokens > 0 ? Double(tokens) / Double(maxTokens) : 0
+                    let totalPct = perProjectTotal > 0 ? Double(tokens) / Double(perProjectTotal) : 0
+                    ProjectProgressBar(
+                        barValue: barPct,
+                        displayPct: totalPct,
                         label: name,
-                        detail: "\(formatTokens(tokens)) (\(totalPct)% of total)",
-                        warningThreshold: 0.70,
-                        criticalThreshold: 0.90
+                        detail: "\(formatTokens(tokens)) (\(Int(totalPct * 100))% of total)"
                     )
                 }
             }
@@ -184,7 +248,9 @@ struct ProjectUsageSection: View {
     }
 
     private func formatTokens(_ count: Int) -> String {
-        if count >= 1_000_000 {
+        if count >= 1_000_000_000 {
+            return String(format: "%.2fB tokens", Double(count) / 1_000_000_000)
+        } else if count >= 1_000_000 {
             return String(format: "%.1fM tokens", Double(count) / 1_000_000)
         } else if count >= 1_000 {
             return String(format: "%.1fK tokens", Double(count) / 1_000)

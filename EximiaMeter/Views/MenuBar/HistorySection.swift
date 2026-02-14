@@ -128,7 +128,9 @@ struct HistorySection: View {
     }
 
     private func formatTokens(_ count: Int) -> String {
-        if count >= 1_000_000 {
+        if count >= 1_000_000_000 {
+            return String(format: "%.2fB", Double(count) / 1_000_000_000)
+        } else if count >= 1_000_000 {
             return String(format: "%.1fM", Double(count) / 1_000_000)
         } else if count >= 1_000 {
             return String(format: "%.1fK", Double(count) / 1_000)
@@ -137,7 +139,9 @@ struct HistorySection: View {
     }
 
     private func formatNumber(_ count: Int) -> String {
-        if count >= 1_000_000 {
+        if count >= 1_000_000_000 {
+            return String(format: "%.2fB", Double(count) / 1_000_000_000)
+        } else if count >= 1_000_000 {
             return String(format: "%.1fM", Double(count) / 1_000_000)
         } else if count >= 1_000 {
             return String(format: "%.1fK", Double(count) / 1_000)
