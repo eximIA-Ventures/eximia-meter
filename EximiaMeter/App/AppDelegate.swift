@@ -176,7 +176,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Welcome to exímIA Meter"
         window.setContentSize(NSSize(width: 520, height: 520))
-        window.styleMask = [.titled, .closable]
+        window.styleMask = NSWindow.StyleMask([.titled, .closable])
         window.center()
         window.isReleasedWhenClosed = false
         window.delegate = self
@@ -209,7 +209,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         let window = NSWindow(contentViewController: hostingController)
         window.title = "exímIA Meter Settings"
         window.setContentSize(NSSize(width: 680, height: 520))
-        window.styleMask = [.titled, .closable, .miniaturizable]
+        window.styleMask = NSWindow.StyleMask([.titled, .closable, .miniaturizable])
         window.center()
         window.isReleasedWhenClosed = false
         window.delegate = self
