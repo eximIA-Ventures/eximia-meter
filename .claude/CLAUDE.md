@@ -227,5 +227,34 @@ npm run trace -- workflow-name
 - Keep README synchronized with actual behavior
 - Document breaking changes prominently
 
+## exímIA Meter — Release Checklist
+
+**OBRIGATÓRIO: Sempre que uma atualização for finalizada e pronta para o usuário, executar TODOS os passos abaixo antes de considerar o trabalho concluído:**
+
+### 1. Build
+```bash
+cd "/Users/hugocapitelli/Dev/hugocapitelli/exímia-meter" && swift build
+```
+- Corrigir qualquer erro antes de prosseguir.
+
+### 2. Bump de Versão
+- Atualizar `Info.plist`:
+  - `CFBundleShortVersionString` — incrementar (ex: `1.2.0` → `1.3.0`)
+  - `CFBundleVersion` — incrementar build number (ex: `3` → `4`)
+- Atualizar changelog em `AboutTabView.swift`:
+  - Adicionar novo `changelogEntry("vX.Y.Z", items: [...])` no topo do bloco de changelog
+  - Manter entradas anteriores
+
+### 3. Commit & Push
+- `git add` dos arquivos modificados
+- Commit com mensagem descritiva usando conventional commits
+- `git push` para o remote
+
+### 4. Verificação
+- Confirmar que `git status` está limpo
+- Informar ao usuário que pode atualizar pelo app (Settings → About → Check for Updates)
+
+**NUNCA esquecer o bump de versão — sem isso o "Check for Updates" não detecta a atualização.**
+
 ---
 *Synkra AIOS Claude Code Configuration v2.0*
