@@ -79,7 +79,7 @@ struct AlertsTabView: View {
                                     set: { settings.alertSound = $0 }
                                 )) {
                                     ForEach(AlertSound.allCases) { sound in
-                                        Text(sound.displayName).tag(sound)
+                                        Text("\(sound.emoji) \(sound.displayName)").tag(sound)
                                     }
                                 }
                                 .pickerStyle(.menu)
@@ -90,15 +90,73 @@ struct AlertsTabView: View {
                                     settings.alertSound.play()
                                 } label: {
                                     HStack(spacing: 4) {
-                                        Image(systemName: "play.fill")
+                                        Image(systemName: "speaker.wave.2.fill")
                                             .font(.system(size: 9))
-                                        Text("Preview")
+                                        Text("Play")
                                             .font(.system(size: 10, weight: .bold))
                                     }
                                     .foregroundColor(.black)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
                                     .background(ExTokens.Colors.accentPrimary)
+                                    .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                                }
+                                .buttonStyle(HoverableButtonStyle())
+                            }
+                        }
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+
+                // Popup Preview
+                if settings.notificationsEnabled && settings.inAppPopupEnabled {
+                    settingsCard {
+                        VStack(alignment: .leading, spacing: ExTokens.Spacing._12) {
+                            cardHeader(icon: "rectangle.topthird.inset.filled", title: "Popup Preview")
+
+                            Text("Test how in-app alerts look in the popover")
+                                .font(.system(size: 10))
+                                .foregroundColor(ExTokens.Colors.textMuted)
+
+                            HStack(spacing: ExTokens.Spacing._8) {
+                                Button {
+                                    firePreviewAlert(severity: "warning")
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "exclamationmark.triangle.fill")
+                                            .font(.system(size: 9))
+                                        Text("Warning")
+                                            .font(.system(size: 10, weight: .bold))
+                                    }
+                                    .foregroundColor(ExTokens.Colors.statusWarning)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 7)
+                                    .background(ExTokens.Colors.statusWarning.opacity(0.1))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: ExTokens.Radius.sm)
+                                            .stroke(ExTokens.Colors.statusWarning.opacity(0.3), lineWidth: 1)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                                }
+                                .buttonStyle(HoverableButtonStyle())
+
+                                Button {
+                                    firePreviewAlert(severity: "critical")
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "exclamationmark.octagon.fill")
+                                            .font(.system(size: 9))
+                                        Text("Critical")
+                                            .font(.system(size: 10, weight: .bold))
+                                    }
+                                    .foregroundColor(ExTokens.Colors.statusCritical)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 7)
+                                    .background(ExTokens.Colors.statusCritical.opacity(0.1))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: ExTokens.Radius.sm)
+                                            .stroke(ExTokens.Colors.statusCritical.opacity(0.3), lineWidth: 1)
+                                    )
                                     .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
                                 }
                                 .buttonStyle(HoverableButtonStyle())
@@ -148,6 +206,28 @@ struct AlertsTabView: View {
             .animation(.easeInOut(duration: 0.2), value: settings.notificationsEnabled)
             .animation(.easeInOut(duration: 0.2), value: settings.soundEnabled)
         }
+    }
+
+    // MARK: - Preview Alert
+
+    private func firePreviewAlert(severity: String) {
+        let message = severity == "critical"
+            ? "Session usage at 95%! Near limit."
+            : "Session usage at 65% — warning level"
+
+        if settings.soundEnabled {
+            settings.alertSound.play()
+        }
+
+        NotificationCenter.default.post(
+            name: NotificationService.alertTriggeredNotification,
+            object: nil,
+            userInfo: [
+                "type": "preview-\(severity)",
+                "severity": severity,
+                "message": message
+            ]
+        )
     }
 
     // MARK: - Toggle Row

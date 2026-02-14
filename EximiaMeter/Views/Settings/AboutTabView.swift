@@ -179,6 +179,15 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v1.5.1", items: [
+                                "All 14 macOS system sounds available (Basso, Blow, Bottle, Frog, etc.)",
+                                "Popup Preview: test warning/critical banners from Settings"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v1.5.0", items: [
                                 "Notifications: sound toggle, in-app popup toggle, sound picker with preview",
                                 "Notifications: 5-min cooldown, smart reset when usage drops below threshold",
