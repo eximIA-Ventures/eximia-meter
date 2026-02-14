@@ -179,6 +179,14 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v1.5.9", items: [
+                                "New: update banner on home page when new version is available"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v1.5.8", items: [
                                 "Fix: projects with deleted paths are auto-pruned on startup",
                                 "Projects: eye toggle hides/shows project on main page (dimmed when hidden)",
