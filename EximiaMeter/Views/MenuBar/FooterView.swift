@@ -4,50 +4,27 @@ struct FooterView: View {
     @EnvironmentObject var appViewModel: AppViewModel
 
     var body: some View {
-        HStack(spacing: ExTokens.Spacing._12) {
+        HStack(spacing: ExTokens.Spacing._8) {
             Text("Updated \(appViewModel.usageViewModel.timeSinceUpdate)")
                 .font(ExTokens.Typography.caption)
                 .foregroundColor(ExTokens.Colors.textMuted)
 
             Spacer()
 
-            // Refresh
-            Button {
-                appViewModel.refresh()
-            } label: {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 12))
-                    .foregroundColor(ExTokens.Colors.accentPrimary)
-            }
-            .buttonStyle(.plain)
-            .help("Refresh data")
-
-            // Settings — use NSApp.sendAction to open Settings scene
-            Button {
-                openSettingsWindow()
-            } label: {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(ExTokens.Colors.textTertiary)
-            }
-            .buttonStyle(.plain)
-            .help("Settings")
-
-            // Quit
             Button {
                 NSApplication.shared.terminate(self)
             } label: {
                 Text("Quit")
-                    .font(ExTokens.Typography.caption)
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundColor(ExTokens.Colors.statusCritical)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(ExTokens.Colors.statusCritical.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.xs))
             }
             .buttonStyle(.plain)
         }
         .padding(.horizontal, ExTokens.Spacing.popoverPadding)
-        .padding(.vertical, ExTokens.Spacing._8)
-    }
-
-    private func openSettingsWindow() {
-        AppDelegate.shared?.openSettings()
+        .padding(.vertical, ExTokens.Spacing._6)
     }
 }
