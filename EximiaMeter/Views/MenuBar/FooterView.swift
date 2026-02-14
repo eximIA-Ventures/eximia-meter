@@ -35,7 +35,7 @@ struct FooterView: View {
 
             // Quit
             Button {
-                NSApplication.shared.terminate(nil)
+                NSApplication.shared.terminate(self)
             } label: {
                 Text("Quit")
                     .font(ExTokens.Typography.caption)

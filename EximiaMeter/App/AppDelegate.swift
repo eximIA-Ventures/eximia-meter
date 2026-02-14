@@ -147,7 +147,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         guard let popover, let button = statusItem?.button else { return }
 
         if popover.isShown {
-            popover.performClose(nil)
+            popover.performClose(self)
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
@@ -158,8 +158,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
     private func showOnboarding() {
         if let onboardingWindow, onboardingWindow.isVisible {
-            onboardingWindow.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            onboardingWindow.makeKeyAndOrderFront(self)
+            NSApp.activate()
             return
         }
 
@@ -180,8 +180,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         window.center()
         window.isReleasedWhenClosed = false
         window.delegate = self
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(self)
+        NSApp.activate()
 
         self.onboardingWindow = window
     }
@@ -191,12 +191,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func openSettings() {
         // Close the popover if it's open
         if let popover, popover.isShown {
-            popover.performClose(nil)
+            popover.performClose(self)
         }
 
         if let settingsWindow, settingsWindow.isVisible {
-            settingsWindow.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            settingsWindow.makeKeyAndOrderFront(self)
+            NSApp.activate()
             return
         }
 
@@ -213,8 +213,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         window.center()
         window.isReleasedWhenClosed = false
         window.delegate = self
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(self)
+        NSApp.activate()
 
         self.settingsWindow = window
     }
@@ -249,7 +249,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             try? process.run()
 
             // Quit the app
-            NSApp.terminate(nil)
+            NSApp.terminate(self)
         }
     }
 
@@ -258,7 +258,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private func setupEventMonitor() {
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             if let popover = self?.popover, popover.isShown {
-                popover.performClose(nil)
+                popover.performClose(self)
             }
         }
     }
