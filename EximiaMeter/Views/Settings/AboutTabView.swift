@@ -419,6 +419,19 @@ struct AboutTabView: View {
         Bundle.main.infoDictionary?["NSHumanReadableCopyright"] as? String ?? "Copyright 2026 exímIA"
     }
 
+    /// Semantic version comparison: returns true if remote > local
+    static func isNewer(remote: String, local: String) -> Bool {
+        let r = remote.split(separator: ".").compactMap { Int($0) }
+        let l = local.split(separator: ".").compactMap { Int($0) }
+        for i in 0..<max(r.count, l.count) {
+            let rv = i < r.count ? r[i] : 0
+            let lv = i < l.count ? l[i] : 0
+            if rv > lv { return true }
+            if rv < lv { return false }
+        }
+        return false
+    }
+
     // MARK: - Check for updates
 
     private func checkForUpdates() {
@@ -446,7 +459,7 @@ struct AboutTabView: View {
                    let stringEnd = content.range(of: "</string>", range: stringStart.upperBound..<content.endIndex) {
                     let version = String(content[stringStart.upperBound..<stringEnd.lowerBound])
                     remoteVersion = version
-                    updateAvailable = !version.isEmpty && version != appVersion
+                    updateAvailable = !version.isEmpty && Self.isNewer(remote: version, local: appVersion)
                     print("[Updates] remote: \(version), local: \(appVersion), available: \(updateAvailable ?? false)")
                 } else {
                     updateAvailable = false

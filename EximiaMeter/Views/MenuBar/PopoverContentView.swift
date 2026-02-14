@@ -113,7 +113,7 @@ struct PopoverContentView: View {
                     let version = String(content[start.upperBound..<end.lowerBound])
                     let local = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
                     remoteVersion = version
-                    updateAvailable = !version.isEmpty && version != local
+                    updateAvailable = !version.isEmpty && AboutTabView.isNewer(remote: version, local: local)
                 }
             }
         }.resume()
