@@ -179,6 +179,23 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v1.5.0", items: [
+                                "Notifications: sound toggle, in-app popup toggle, sound picker with preview",
+                                "Notifications: 5-min cooldown, smart reset when usage drops below threshold",
+                                "In-app alert banner at top of popover (auto-dismiss 8s)",
+                                "Settings: hoverable cards with border highlight across all tabs",
+                                "Alerts: redesigned with notification controls card and sound picker",
+                                "Account: connection status pill badge, decorative plan icons",
+                                "General: terminal descriptions under each option",
+                                "Projects: inline token progress bar with color coding",
+                                "Per-project section: total tokens pill badge",
+                                "Usage meters: session now shows above weekly"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v1.4.1", items: [
                                 "Fix: app now truly reopens after update (nohup detach)"
                             ])

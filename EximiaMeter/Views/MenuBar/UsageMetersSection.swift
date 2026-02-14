@@ -21,22 +21,22 @@ struct UsageMetersSection: View {
                     .foregroundColor(usage.usageSource == .api ? ExTokens.Colors.accentPrimary : ExTokens.Colors.textMuted)
             }
 
-            // ─── Weekly Usage (main meter) ──────────────────
-            ExProgressBar(
-                value: usage.weeklyUsage,
-                label: "Weekly Usage",
-                detail: "Resets in \(usage.weeklyResetFormatted)",
-                warningThreshold: thresholds.weeklyWarning,
-                criticalThreshold: thresholds.weeklyCritical
-            )
-
-            // ─── Current Session ─────────────────────────────
+            // ─── Current Session (primary) ─────────────────────
             ExProgressBar(
                 value: usage.sessionUsage,
                 label: "Current Session",
                 detail: "Resets in \(usage.sessionResetFormatted)",
                 warningThreshold: thresholds.sessionWarning,
                 criticalThreshold: thresholds.sessionCritical
+            )
+
+            // ─── Weekly Usage ──────────────────────────────────
+            ExProgressBar(
+                value: usage.weeklyUsage,
+                label: "Weekly Usage",
+                detail: "Resets in \(usage.weeklyResetFormatted)",
+                warningThreshold: thresholds.weeklyWarning,
+                criticalThreshold: thresholds.weeklyCritical
             )
 
             // ─── Model Distribution ─────────────────────────
@@ -206,7 +206,18 @@ struct ProjectUsageSection: View {
 
                     Spacer()
 
-                    Text("\(perProjectTokens.count) projects")
+                    // Total tokens pill
+                    if perProjectTotal > 0 {
+                        Text(formatTokensShort(perProjectTotal))
+                            .font(ExTokens.Typography.micro)
+                            .foregroundColor(ExTokens.Colors.accentPrimary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(ExTokens.Colors.accentPrimary.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.xs))
+                    }
+
+                    Text("\(perProjectTokens.count)")
                         .font(ExTokens.Typography.micro)
                         .foregroundColor(ExTokens.Colors.textMuted)
                 }
@@ -220,15 +231,19 @@ struct ProjectUsageSection: View {
                 let sorted = sortedProjects
                 let maxTokens = sorted.first?.1 ?? 1
 
-                ForEach(sorted, id: \.0) { name, tokens in
-                    let barPct = maxTokens > 0 ? Double(tokens) / Double(maxTokens) : 0
-                    let totalPct = perProjectTotal > 0 ? Double(tokens) / Double(perProjectTotal) : 0
-                    ProjectProgressBar(
-                        barValue: barPct,
-                        displayPct: totalPct,
-                        label: name,
-                        detail: "\(formatTokens(tokens)) (\(Int(totalPct * 100))% of total)"
-                    )
+                // Stacked mini bars (compact view)
+                VStack(spacing: 6) {
+                    ForEach(sorted, id: \.0) { name, tokens in
+                        let barPct = maxTokens > 0 ? Double(tokens) / Double(maxTokens) : 0
+                        let totalPct = perProjectTotal > 0 ? Double(tokens) / Double(perProjectTotal) : 0
+
+                        ProjectProgressBar(
+                            barValue: barPct,
+                            displayPct: totalPct,
+                            label: name,
+                            detail: "\(formatTokens(tokens)) (\(Int(totalPct * 100))% of total)"
+                        )
+                    }
                 }
             }
         }
@@ -258,5 +273,16 @@ struct ProjectUsageSection: View {
             return String(format: "%.1fK tokens", Double(count) / 1_000)
         }
         return "\(count) tokens"
+    }
+
+    private func formatTokensShort(_ count: Int) -> String {
+        if count >= 1_000_000_000 {
+            return String(format: "%.1fB", Double(count) / 1_000_000_000)
+        } else if count >= 1_000_000 {
+            return String(format: "%.1fM", Double(count) / 1_000_000)
+        } else if count >= 1_000 {
+            return String(format: "%.0fK", Double(count) / 1_000)
+        }
+        return "\(count)"
     }
 }

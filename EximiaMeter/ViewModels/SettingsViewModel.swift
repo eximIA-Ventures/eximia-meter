@@ -31,6 +31,18 @@ class SettingsViewModel {
         didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled") }
     }
 
+    var soundEnabled: Bool = true {
+        didSet { UserDefaults.standard.set(soundEnabled, forKey: "soundEnabled") }
+    }
+
+    var inAppPopupEnabled: Bool = true {
+        didSet { UserDefaults.standard.set(inAppPopupEnabled, forKey: "inAppPopupEnabled") }
+    }
+
+    var alertSound: AlertSound = .default {
+        didSet { UserDefaults.standard.set(alertSound.rawValue, forKey: "alertSound") }
+    }
+
     var hasCompletedOnboarding: Bool = false {
         didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
     }
@@ -74,6 +86,12 @@ class SettingsViewModel {
         refreshInterval = defaults.double(forKey: "refreshInterval").nonZero ?? 30
         launchAtLogin = defaults.bool(forKey: "launchAtLogin")
         notificationsEnabled = defaults.object(forKey: "notificationsEnabled") as? Bool ?? true
+        soundEnabled = defaults.object(forKey: "soundEnabled") as? Bool ?? true
+        inAppPopupEnabled = defaults.object(forKey: "inAppPopupEnabled") as? Bool ?? true
+        if let soundRaw = defaults.string(forKey: "alertSound"),
+           let sound = AlertSound(rawValue: soundRaw) {
+            alertSound = sound
+        }
         hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
 
         // Use plan defaults if no custom limits saved

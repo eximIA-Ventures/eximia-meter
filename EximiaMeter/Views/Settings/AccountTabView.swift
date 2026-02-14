@@ -9,7 +9,7 @@ struct AccountTabView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: ExTokens.Spacing._16) {
+            VStack(spacing: ExTokens.Spacing._24) {
                 // Section header
                 sectionHeader(
                     title: "Account",
@@ -17,18 +17,13 @@ struct AccountTabView: View {
                 )
 
                 // Connection Status
-                settingsCard {
+                HoverableCard {
                     VStack(alignment: .leading, spacing: ExTokens.Spacing._12) {
                         cardHeader(icon: "link", title: "Connection Status")
 
+                        // Pill badge
                         HStack(spacing: ExTokens.Spacing._8) {
-                            Circle()
-                                .fill(settings.isApiConnected ? ExTokens.Colors.statusSuccess : ExTokens.Colors.statusWarning)
-                                .frame(width: 8, height: 8)
-
-                            Text(settings.isApiConnected ? "Connected" : "Not Connected")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(settings.isApiConnected ? ExTokens.Colors.statusSuccess : ExTokens.Colors.statusWarning)
+                            connectionPill
 
                             Spacer()
 
@@ -69,7 +64,7 @@ struct AccountTabView: View {
                 }
 
                 // Claude Plan
-                settingsCard {
+                HoverableCard {
                     VStack(alignment: .leading, spacing: ExTokens.Spacing._12) {
                         HStack {
                             cardHeader(icon: "cpu", title: "Claude Plan")
@@ -104,7 +99,7 @@ struct AccountTabView: View {
                 }
 
                 // Token Limits
-                settingsCard {
+                HoverableCard {
                     VStack(alignment: .leading, spacing: ExTokens.Spacing._12) {
                         cardHeader(icon: "chart.bar", title: "Token Limits")
 
@@ -117,6 +112,33 @@ struct AccountTabView: View {
             }
             .padding(ExTokens.Spacing._24)
         }
+    }
+
+    // MARK: - Connection Pill
+
+    private var connectionPill: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(settings.isApiConnected ? ExTokens.Colors.statusSuccess : ExTokens.Colors.statusWarning)
+                .frame(width: 7, height: 7)
+
+            Text(settings.isApiConnected ? "Connected" : "Not Connected")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(settings.isApiConnected ? ExTokens.Colors.statusSuccess : ExTokens.Colors.statusWarning)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(
+            (settings.isApiConnected ? ExTokens.Colors.statusSuccess : ExTokens.Colors.statusWarning).opacity(0.1)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: ExTokens.Radius.full)
+                .stroke(
+                    (settings.isApiConnected ? ExTokens.Colors.statusSuccess : ExTokens.Colors.statusWarning).opacity(0.3),
+                    lineWidth: 1
+                )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.full))
     }
 
     // MARK: - Components
@@ -136,7 +158,11 @@ struct AccountTabView: View {
         return Button {
             settings.claudePlan = plan
         } label: {
-            VStack(spacing: 3) {
+            VStack(spacing: 4) {
+                Image(systemName: planIcon(for: plan))
+                    .font(.system(size: 14))
+                    .foregroundColor(isSelected ? .black.opacity(0.7) : ExTokens.Colors.textMuted)
+
                 Text(plan.displayName)
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(isSelected ? .black : ExTokens.Colors.textSecondary)
@@ -146,7 +172,7 @@ struct AccountTabView: View {
                     .foregroundColor(isSelected ? .black.opacity(0.6) : ExTokens.Colors.textMuted)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
             .background(
                 isSelected
                     ? ExTokens.Colors.accentPrimary
@@ -163,6 +189,14 @@ struct AccountTabView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(HoverableButtonStyle())
+    }
+
+    private func planIcon(for plan: ClaudePlan) -> String {
+        switch plan {
+        case .pro:    return "bolt"
+        case .max5x:  return "bolt.trianglebadge.exclamationmark"
+        case .max20x: return "bolt.shield"
+        }
     }
 
     private func limitBadge(label: String, value: String) -> some View {
@@ -189,18 +223,6 @@ struct AccountTabView: View {
         } else {
             return "\(tokens) tokens"
         }
-    }
-
-    private func settingsCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        content()
-            .padding(ExTokens.Spacing._16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ExTokens.Colors.backgroundCard)
-            .overlay(
-                RoundedRectangle(cornerRadius: ExTokens.Radius.lg)
-                    .stroke(ExTokens.Colors.borderDefault, lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.lg))
     }
 
     private func cardHeader(icon: String, title: String) -> some View {

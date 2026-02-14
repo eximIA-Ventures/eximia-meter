@@ -71,15 +71,29 @@ struct ProjectCardView: View {
                     }
 
                 Spacer()
+            }
 
-                if weeklyTokens > 0 {
-                    HStack(spacing: 3) {
-                        Image(systemName: "chart.bar.fill")
-                            .font(.system(size: 7))
-                        Text(formatTokens(weeklyTokens))
-                            .font(ExTokens.Typography.micro)
+            // ─── Token Usage Inline ───────────────────────
+            if weeklyTokens > 0 {
+                HStack(spacing: 0) {
+                    // Mini progress bar
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 3)
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(tokenBarColor)
+                                .frame(width: geo.size.width * min(usagePct, 1.0), height: 3)
+                        }
                     }
-                    .foregroundColor(ExTokens.Colors.textMuted)
+                    .frame(height: 3)
+
+                    Spacer().frame(width: 8)
+
+                    Text(formatTokens(weeklyTokens))
+                        .font(ExTokens.Typography.micro)
+                        .foregroundColor(tokenBarColor)
                 }
             }
 
@@ -112,26 +126,32 @@ struct ProjectCardView: View {
                         }
                     }
 
-                    // Usage bar
+                    // Detailed usage bar
                     if weeklyTokens > 0 {
                         GeometryReader { geo in
                             ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 2)
+                                RoundedRectangle(cornerRadius: 3)
                                     .fill(ExTokens.Colors.borderDefault)
-                                    .frame(height: 4)
-                                RoundedRectangle(cornerRadius: 2)
-                                    .fill(ExTokens.Colors.accentPrimary)
-                                    .frame(width: geo.size.width * min(usagePct, 1.0), height: 4)
+                                    .frame(height: 6)
+                                RoundedRectangle(cornerRadius: 3)
+                                    .fill(tokenBarColor)
+                                    .frame(width: geo.size.width * min(usagePct, 1.0), height: 6)
                             }
                         }
-                        .frame(height: 4)
+                        .frame(height: 6)
 
-                        Text("\(formatTokens(weeklyTokens)) tokens used")
-                            .font(.system(size: 8, design: .monospaced))
-                            .foregroundColor(ExTokens.Colors.textTertiary)
+                        HStack {
+                            Text("\(formatTokens(weeklyTokens)) tokens")
+                                .font(.system(size: 8, design: .monospaced))
+                                .foregroundColor(ExTokens.Colors.textTertiary)
+                            Spacer()
+                            Text("\(Int(usagePct * 100))%")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundColor(tokenBarColor)
+                        }
                     }
 
-                    // Sessions info
+                    // Sessions & AIOS badge
                     HStack(spacing: 12) {
                         Label("\(project.totalSessions)", systemImage: "terminal.fill")
                             .font(.system(size: 8))
@@ -190,7 +210,7 @@ struct ProjectCardView: View {
             }
         }
         .padding(10)
-        .frame(width: 180, height: isExpanded ? 210 : 120)
+        .frame(width: 180, height: isExpanded ? 220 : 130)
         .background(ExTokens.Colors.backgroundCard)
         .overlay(
             RoundedRectangle(cornerRadius: ExTokens.Radius.lg)
@@ -220,8 +240,20 @@ struct ProjectCardView: View {
         .animation(.easeInOut(duration: 0.2), value: isExpanded)
     }
 
+    // MARK: - Computed
+
     private var usagePct: CGFloat {
         CGFloat(weeklyTokens) / 10_000_000.0
+    }
+
+    private var tokenBarColor: Color {
+        if usagePct >= 0.8 {
+            return ExTokens.Colors.statusCritical
+        } else if usagePct >= 0.5 {
+            return ExTokens.Colors.statusWarning
+        } else {
+            return ExTokens.Colors.accentPrimary
+        }
     }
 
     private func formatTokens(_ count: Int) -> String {

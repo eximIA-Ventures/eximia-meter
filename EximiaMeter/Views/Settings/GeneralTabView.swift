@@ -9,7 +9,7 @@ struct GeneralTabView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: ExTokens.Spacing._16) {
+            VStack(spacing: ExTokens.Spacing._24) {
                 // Section header
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -25,7 +25,7 @@ struct GeneralTabView: View {
                 }
 
                 // App Behavior
-                settingsCard {
+                HoverableCard {
                     VStack(alignment: .leading, spacing: ExTokens.Spacing._12) {
                         cardHeader(icon: "gearshape", title: "Behavior")
 
@@ -40,7 +40,7 @@ struct GeneralTabView: View {
                 }
 
                 // Refresh Interval
-                settingsCard {
+                HoverableCard {
                     VStack(alignment: .leading, spacing: ExTokens.Spacing._12) {
                         cardHeader(icon: "arrow.clockwise", title: "Refresh Interval")
 
@@ -53,11 +53,11 @@ struct GeneralTabView: View {
                 }
 
                 // Terminal
-                settingsCard {
+                HoverableCard {
                     VStack(alignment: .leading, spacing: ExTokens.Spacing._12) {
                         cardHeader(icon: "terminal", title: "Preferred Terminal")
 
-                        HStack(spacing: 4) {
+                        HStack(spacing: 6) {
                             ForEach(TerminalLauncherService.Terminal.allCases) { terminal in
                                 terminalButton(terminal)
                             }
@@ -69,19 +69,7 @@ struct GeneralTabView: View {
         }
     }
 
-    // MARK: - Reusable card wrapper
-
-    private func settingsCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        content()
-            .padding(ExTokens.Spacing._16)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ExTokens.Colors.backgroundCard)
-            .overlay(
-                RoundedRectangle(cornerRadius: ExTokens.Radius.lg)
-                    .stroke(ExTokens.Colors.borderDefault, lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.lg))
-    }
+    // MARK: - Card Header
 
     private func cardHeader(icon: String, title: String) -> some View {
         HStack(spacing: 6) {
@@ -127,7 +115,7 @@ struct GeneralTabView: View {
         .buttonStyle(HoverableButtonStyle())
     }
 
-    // MARK: - Terminal button
+    // MARK: - Terminal button with description
 
     private func terminalButton(_ terminal: TerminalLauncherService.Terminal) -> some View {
         let isSelected = settings.preferredTerminal == terminal
@@ -135,26 +123,41 @@ struct GeneralTabView: View {
         return Button {
             settings.preferredTerminal = terminal
         } label: {
-            Text(terminal.rawValue)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundColor(isSelected ? .black : ExTokens.Colors.textTertiary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(
-                    isSelected
-                        ? ExTokens.Colors.accentPrimary
-                        : ExTokens.Colors.backgroundElevated
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: ExTokens.Radius.sm)
-                        .stroke(
-                            isSelected ? ExTokens.Colors.accentPrimary : ExTokens.Colors.borderDefault,
-                            lineWidth: 1
-                        )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
-                .contentShape(Rectangle())
+            VStack(spacing: 3) {
+                Text(terminal.rawValue)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(isSelected ? .black : ExTokens.Colors.textTertiary)
+
+                Text(terminalDescription(terminal))
+                    .font(.system(size: 8))
+                    .foregroundColor(isSelected ? .black.opacity(0.6) : ExTokens.Colors.textMuted)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(
+                isSelected
+                    ? ExTokens.Colors.accentPrimary
+                    : ExTokens.Colors.backgroundElevated
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: ExTokens.Radius.sm)
+                    .stroke(
+                        isSelected ? ExTokens.Colors.accentPrimary : ExTokens.Colors.borderDefault,
+                        lineWidth: 1
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+            .contentShape(Rectangle())
         }
         .buttonStyle(HoverableButtonStyle())
+    }
+
+    private func terminalDescription(_ terminal: TerminalLauncherService.Terminal) -> String {
+        switch terminal {
+        case .terminalApp: return "macOS built-in"
+        case .iTerm2:      return "Advanced terminal"
+        case .warp:        return "AI-powered"
+        }
     }
 }

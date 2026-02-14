@@ -121,6 +121,9 @@ class AppViewModel: ObservableObject {
                 self.usageViewModel.update(from: usageData)
 
                 if notificationsEnabled {
+                    NotificationService.shared.soundEnabled = self.settingsViewModel.soundEnabled
+                    NotificationService.shared.inAppPopupEnabled = self.settingsViewModel.inAppPopupEnabled
+                    NotificationService.shared.alertSound = self.settingsViewModel.alertSound
                     NotificationService.shared.checkAndNotify(
                         usageData: usageData,
                         thresholds: thresholds

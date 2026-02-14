@@ -9,7 +9,7 @@ struct AlertsTabView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: ExTokens.Spacing._16) {
+            VStack(spacing: ExTokens.Spacing._24) {
                 // Section header
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -17,40 +17,96 @@ struct AlertsTabView: View {
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(ExTokens.Colors.textPrimary)
 
-                        Text("Notifications and usage thresholds")
+                        Text("Notifications, sounds, and usage thresholds")
                             .font(ExTokens.Typography.caption)
                             .foregroundColor(ExTokens.Colors.textTertiary)
                     }
                     Spacer()
                 }
 
-                // Notifications toggle
-                HStack {
-                    Image(systemName: settings.notificationsEnabled ? "bell.fill" : "bell.slash")
-                        .font(.system(size: 13))
-                        .foregroundColor(settings.notificationsEnabled ? ExTokens.Colors.accentPrimary : ExTokens.Colors.textMuted)
+                // Notification Controls
+                settingsCard {
+                    VStack(alignment: .leading, spacing: ExTokens.Spacing._16) {
+                        cardHeader(icon: "bell.badge", title: "Notification Controls")
 
-                    Text("Enable Notifications")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(ExTokens.Colors.textPrimary)
+                        toggleRow(
+                            icon: settings.notificationsEnabled ? "bell.fill" : "bell.slash",
+                            iconColor: settings.notificationsEnabled ? ExTokens.Colors.accentPrimary : ExTokens.Colors.textMuted,
+                            label: "Enable Notifications",
+                            value: Binding(
+                                get: { settings.notificationsEnabled },
+                                set: { settings.notificationsEnabled = $0 }
+                            )
+                        )
 
-                    Spacer()
+                        if settings.notificationsEnabled {
+                            Divider()
+                                .background(ExTokens.Colors.borderDefault)
 
-                    Toggle("", isOn: Binding(
-                        get: { settings.notificationsEnabled },
-                        set: { settings.notificationsEnabled = $0 }
-                    ))
-                    .toggleStyle(.switch)
-                    .tint(ExTokens.Colors.accentPrimary)
-                    .labelsHidden()
+                            toggleRow(
+                                icon: settings.soundEnabled ? "speaker.wave.2.fill" : "speaker.slash.fill",
+                                iconColor: settings.soundEnabled ? ExTokens.Colors.statusSuccess : ExTokens.Colors.textMuted,
+                                label: "Sound",
+                                value: Binding(
+                                    get: { settings.soundEnabled },
+                                    set: { settings.soundEnabled = $0 }
+                                )
+                            )
+
+                            toggleRow(
+                                icon: "rectangle.topthird.inset.filled",
+                                iconColor: settings.inAppPopupEnabled ? ExTokens.Colors.accentCyan : ExTokens.Colors.textMuted,
+                                label: "In-App Popup",
+                                value: Binding(
+                                    get: { settings.inAppPopupEnabled },
+                                    set: { settings.inAppPopupEnabled = $0 }
+                                )
+                            )
+                        }
+                    }
                 }
-                .padding(ExTokens.Spacing._16)
-                .background(ExTokens.Colors.backgroundCard)
-                .overlay(
-                    RoundedRectangle(cornerRadius: ExTokens.Radius.lg)
-                        .stroke(ExTokens.Colors.borderDefault, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.lg))
+                .animation(.easeInOut(duration: 0.2), value: settings.notificationsEnabled)
+
+                // Sound Picker
+                if settings.notificationsEnabled && settings.soundEnabled {
+                    settingsCard {
+                        VStack(alignment: .leading, spacing: ExTokens.Spacing._12) {
+                            cardHeader(icon: "music.note", title: "Alert Sound")
+
+                            HStack(spacing: ExTokens.Spacing._8) {
+                                Picker("", selection: Binding(
+                                    get: { settings.alertSound },
+                                    set: { settings.alertSound = $0 }
+                                )) {
+                                    ForEach(AlertSound.allCases) { sound in
+                                        Text(sound.displayName).tag(sound)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(maxWidth: .infinity)
+                                .tint(ExTokens.Colors.accentPrimary)
+
+                                Button {
+                                    settings.alertSound.play()
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "play.fill")
+                                            .font(.system(size: 9))
+                                        Text("Preview")
+                                            .font(.system(size: 10, weight: .bold))
+                                    }
+                                    .foregroundColor(.black)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(ExTokens.Colors.accentPrimary)
+                                    .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                                }
+                                .buttonStyle(HoverableButtonStyle())
+                            }
+                        }
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
 
                 // Session thresholds
                 thresholdCard(
@@ -90,62 +146,72 @@ struct AlertsTabView: View {
             }
             .padding(ExTokens.Spacing._24)
             .animation(.easeInOut(duration: 0.2), value: settings.notificationsEnabled)
+            .animation(.easeInOut(duration: 0.2), value: settings.soundEnabled)
+        }
+    }
+
+    // MARK: - Toggle Row
+
+    private func toggleRow(icon: String, iconColor: Color, label: String, value: Binding<Bool>) -> some View {
+        HStack {
+            Image(systemName: icon)
+                .font(.system(size: 13))
+                .foregroundColor(iconColor)
+                .frame(width: 20)
+
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(ExTokens.Colors.textPrimary)
+
+            Spacer()
+
+            Toggle("", isOn: value)
+                .toggleStyle(.switch)
+                .tint(ExTokens.Colors.accentPrimary)
+                .labelsHidden()
         }
     }
 
     // MARK: - Active Alerts Summary
 
     private var activeAlertsSummary: some View {
-        VStack(alignment: .leading, spacing: ExTokens.Spacing._12) {
-            HStack(spacing: 6) {
-                Image(systemName: "list.bullet")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(ExTokens.Colors.accentPrimary)
+        settingsCard {
+            VStack(alignment: .leading, spacing: ExTokens.Spacing._12) {
+                cardHeader(icon: "list.bullet", title: "Active Alerts")
 
-                Text("Active Alerts")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(ExTokens.Colors.textPrimary)
+                alertRow(
+                    color: ExTokens.Colors.statusWarning,
+                    icon: "exclamationmark.triangle.fill",
+                    text: "Session warning",
+                    value: "\(Int(settings.thresholds.sessionWarning * 100))%"
+                )
+
+                alertRow(
+                    color: ExTokens.Colors.statusCritical,
+                    icon: "exclamationmark.octagon.fill",
+                    text: "Session critical",
+                    value: "\(Int(settings.thresholds.sessionCritical * 100))%"
+                )
+
+                Rectangle()
+                    .fill(ExTokens.Colors.borderDefault)
+                    .frame(height: 1)
+
+                alertRow(
+                    color: ExTokens.Colors.statusWarning,
+                    icon: "exclamationmark.triangle.fill",
+                    text: "Weekly warning",
+                    value: "\(Int(settings.thresholds.weeklyWarning * 100))%"
+                )
+
+                alertRow(
+                    color: ExTokens.Colors.statusCritical,
+                    icon: "exclamationmark.octagon.fill",
+                    text: "Weekly critical",
+                    value: "\(Int(settings.thresholds.weeklyCritical * 100))%"
+                )
             }
-
-            alertRow(
-                color: ExTokens.Colors.statusWarning,
-                icon: "exclamationmark.triangle.fill",
-                text: "Session warning",
-                value: "\(Int(settings.thresholds.sessionWarning * 100))%"
-            )
-
-            alertRow(
-                color: ExTokens.Colors.statusCritical,
-                icon: "exclamationmark.octagon.fill",
-                text: "Session critical",
-                value: "\(Int(settings.thresholds.sessionCritical * 100))%"
-            )
-
-            Rectangle()
-                .fill(ExTokens.Colors.borderDefault)
-                .frame(height: 1)
-
-            alertRow(
-                color: ExTokens.Colors.statusWarning,
-                icon: "exclamationmark.triangle.fill",
-                text: "Weekly warning",
-                value: "\(Int(settings.thresholds.weeklyWarning * 100))%"
-            )
-
-            alertRow(
-                color: ExTokens.Colors.statusCritical,
-                icon: "exclamationmark.octagon.fill",
-                text: "Weekly critical",
-                value: "\(Int(settings.thresholds.weeklyCritical * 100))%"
-            )
         }
-        .padding(ExTokens.Spacing._16)
-        .background(ExTokens.Colors.backgroundCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: ExTokens.Radius.lg)
-                .stroke(ExTokens.Colors.borderDefault, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.lg))
     }
 
     // MARK: - Threshold Card
@@ -157,44 +223,39 @@ struct AlertsTabView: View {
         warningValue: Binding<Double>,
         criticalValue: Binding<Double>
     ) -> some View {
-        VStack(alignment: .leading, spacing: ExTokens.Spacing._16) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(ExTokens.Colors.accentPrimary)
+        settingsCard {
+            VStack(alignment: .leading, spacing: ExTokens.Spacing._16) {
+                HStack(spacing: 8) {
+                    Image(systemName: icon)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(ExTokens.Colors.accentPrimary)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(ExTokens.Colors.textPrimary)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(title)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(ExTokens.Colors.textPrimary)
 
-                    Text(subtitle)
-                        .font(.system(size: 10))
-                        .foregroundColor(ExTokens.Colors.textMuted)
+                        Text(subtitle)
+                            .font(.system(size: 10))
+                            .foregroundColor(ExTokens.Colors.textMuted)
+                    }
                 }
+
+                previewBar(warning: warningValue.wrappedValue, critical: criticalValue.wrappedValue)
+
+                sliderRow(
+                    color: ExTokens.Colors.statusWarning,
+                    label: "Warning",
+                    value: warningValue
+                )
+
+                sliderRow(
+                    color: ExTokens.Colors.statusCritical,
+                    label: "Critical",
+                    value: criticalValue
+                )
             }
-
-            previewBar(warning: warningValue.wrappedValue, critical: criticalValue.wrappedValue)
-
-            sliderRow(
-                color: ExTokens.Colors.statusWarning,
-                label: "Warning",
-                value: warningValue
-            )
-
-            sliderRow(
-                color: ExTokens.Colors.statusCritical,
-                label: "Critical",
-                value: criticalValue
-            )
         }
-        .padding(ExTokens.Spacing._16)
-        .background(ExTokens.Colors.backgroundCard)
-        .overlay(
-            RoundedRectangle(cornerRadius: ExTokens.Radius.lg)
-                .stroke(ExTokens.Colors.borderDefault, lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.lg))
     }
 
     // MARK: - Helpers
@@ -261,5 +322,52 @@ struct AlertsTabView: View {
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundColor(color)
         }
+    }
+
+    // MARK: - Shared Components
+
+    private func settingsCard<Content: View>(@ViewBuilder content: @escaping () -> Content) -> some View {
+        HoverableCard {
+            content()
+        }
+    }
+
+    private func cardHeader(icon: String, title: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(ExTokens.Colors.accentPrimary)
+
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(ExTokens.Colors.textPrimary)
+        }
+    }
+}
+
+// MARK: - Hoverable Card (shared across settings tabs)
+
+struct HoverableCard<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+    @State private var isHovered = false
+
+    var body: some View {
+        content()
+            .padding(ExTokens.Spacing._16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(ExTokens.Colors.backgroundCard)
+            .overlay(
+                RoundedRectangle(cornerRadius: ExTokens.Radius.lg)
+                    .stroke(
+                        isHovered ? ExTokens.Colors.borderHover : ExTokens.Colors.borderDefault,
+                        lineWidth: 1
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.lg))
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    isHovered = hovering
+                }
+            }
     }
 }
