@@ -31,12 +31,28 @@ class SettingsViewModel {
         didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled") }
     }
 
+    var hasCompletedOnboarding: Bool = false {
+        didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
+    }
+
     var weeklyTokenLimit: Int = 2_000_000_000 {
         didSet { UserDefaults.standard.set(weeklyTokenLimit, forKey: "weeklyTokenLimit") }
     }
 
     var sessionTokenLimit: Int = 200_000_000 {
         didSet { UserDefaults.standard.set(sessionTokenLimit, forKey: "sessionTokenLimit") }
+    }
+
+    // MARK: - Account / Auto-detect
+
+    var isPlanAutoDetected: Bool = false
+
+    var isApiConnected: Bool {
+        AnthropicUsageService.shared.getAccountInfo().isConnected
+    }
+
+    var accountInfo: AnthropicUsageService.AccountInfo {
+        AnthropicUsageService.shared.getAccountInfo()
     }
 
     init() {
@@ -58,6 +74,7 @@ class SettingsViewModel {
         refreshInterval = defaults.double(forKey: "refreshInterval").nonZero ?? 30
         launchAtLogin = defaults.bool(forKey: "launchAtLogin")
         notificationsEnabled = defaults.object(forKey: "notificationsEnabled") as? Bool ?? true
+        hasCompletedOnboarding = defaults.bool(forKey: "hasCompletedOnboarding")
 
         // Use plan defaults if no custom limits saved
         weeklyTokenLimit = (defaults.integer(forKey: "weeklyTokenLimit")).nonZero ?? claudePlan.weeklyTokenLimit
@@ -66,6 +83,33 @@ class SettingsViewModel {
         if let terminalRaw = defaults.string(forKey: "preferredTerminal"),
            let terminal = TerminalLauncherService.Terminal(rawValue: terminalRaw) {
             preferredTerminal = terminal
+        }
+
+        // Auto-detect plan from Keychain credentials
+        autoDetectPlan()
+    }
+
+    private func autoDetectPlan() {
+        let info = AnthropicUsageService.shared.getAccountInfo()
+        guard info.isConnected, let tier = info.rateLimitTier else { return }
+
+        let detected: ClaudePlan?
+        switch tier.lowercased() {
+        case "free", "standard", "tier1":
+            detected = .pro
+        case "scale", "tier2", "5x":
+            detected = .max5x
+        case "tier3", "20x":
+            detected = .max20x
+        default:
+            // Log unknown tier for debugging
+            print("[SettingsVM] Unknown rateLimitTier: \(tier)")
+            detected = nil
+        }
+
+        if let plan = detected {
+            isPlanAutoDetected = true
+            claudePlan = plan
         }
     }
 

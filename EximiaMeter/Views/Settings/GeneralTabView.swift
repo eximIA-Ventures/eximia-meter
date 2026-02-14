@@ -13,35 +13,15 @@ struct GeneralTabView: View {
                 // Section header
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("General Settings")
+                        Text("General")
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(ExTokens.Colors.textPrimary)
 
-                        Text("App behavior and Claude plan configuration")
+                        Text("App behavior and preferences")
                             .font(ExTokens.Typography.caption)
                             .foregroundColor(ExTokens.Colors.textTertiary)
                     }
                     Spacer()
-                }
-
-                // Claude Plan
-                settingsCard {
-                    VStack(alignment: .leading, spacing: ExTokens.Spacing._12) {
-                        cardHeader(icon: "cpu", title: "Claude Plan")
-
-                        HStack(spacing: 6) {
-                            ForEach(ClaudePlan.allCases) { plan in
-                                planButton(plan)
-                            }
-                        }
-
-                        // Limits display
-                        HStack(spacing: ExTokens.Spacing._24) {
-                            limitBadge(label: "Weekly", value: formatTokens(settings.weeklyTokenLimit))
-                            limitBadge(label: "Session", value: formatTokens(settings.sessionTokenLimit))
-                        }
-                        .padding(.top, 4)
-                    }
                 }
 
                 // App Behavior
@@ -115,41 +95,6 @@ struct GeneralTabView: View {
         }
     }
 
-    // MARK: - Plan button
-
-    private func planButton(_ plan: ClaudePlan) -> some View {
-        let isSelected = settings.claudePlan == plan
-        return Button {
-            settings.claudePlan = plan
-        } label: {
-            VStack(spacing: 3) {
-                Text(plan.displayName)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(isSelected ? .black : ExTokens.Colors.textSecondary)
-
-                Text(plan.description)
-                    .font(.system(size: 8))
-                    .foregroundColor(isSelected ? .black.opacity(0.6) : ExTokens.Colors.textMuted)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .background(
-                isSelected
-                    ? ExTokens.Colors.accentPrimary
-                    : ExTokens.Colors.backgroundElevated
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: ExTokens.Radius.md)
-                    .stroke(
-                        isSelected ? ExTokens.Colors.accentPrimary : ExTokens.Colors.borderDefault,
-                        lineWidth: 1
-                    )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.md))
-        }
-        .buttonStyle(.plain)
-    }
-
     // MARK: - Interval button
 
     private func intervalButton(_ interval: Double) -> some View {
@@ -209,33 +154,5 @@ struct GeneralTabView: View {
                 .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
         }
         .buttonStyle(.plain)
-    }
-
-    // MARK: - Helpers
-
-    private func limitBadge(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(label)
-                .font(.system(size: 9, weight: .medium))
-                .foregroundColor(ExTokens.Colors.textMuted)
-                .textCase(.uppercase)
-                .tracking(0.5)
-
-            Text(value)
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundColor(ExTokens.Colors.textTertiary)
-        }
-    }
-
-    private func formatTokens(_ tokens: Int) -> String {
-        if tokens >= 1_000_000_000 {
-            let value = Double(tokens) / 1_000_000_000
-            return String(format: "%.1fB tokens", value)
-        } else if tokens >= 1_000_000 {
-            let value = Double(tokens) / 1_000_000
-            return String(format: "%.0fM tokens", value)
-        } else {
-            return "\(tokens) tokens"
-        }
     }
 }

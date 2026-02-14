@@ -5,6 +5,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
     private var settingsWindow: NSWindow?
+    private var onboardingWindow: NSWindow?
     private var eventMonitor: Any?
 
     let appViewModel = AppViewModel()
@@ -20,7 +21,27 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         setupPopover()
         setupEventMonitor()
 
+        if !appViewModel.settingsViewModel.hasCompletedOnboarding {
+            showOnboarding()
+        }
+
         appViewModel.start()
+    }
+
+    // MARK: - Dock Visibility
+
+    /// Show app in Dock (for windows like Settings/Onboarding)
+    private func showInDock() {
+        NSApp.setActivationPolicy(.regular)
+    }
+
+    /// Hide from Dock (menu bar only mode)
+    private func hideFromDock() {
+        // Only hide if no windows are visible
+        let hasVisibleWindows = (settingsWindow?.isVisible == true) || (onboardingWindow?.isVisible == true)
+        if !hasVisibleWindows {
+            NSApp.setActivationPolicy(.accessory)
+        }
     }
 
     // MARK: - Status Item
@@ -133,6 +154,38 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
     }
 
+    // MARK: - Onboarding Window
+
+    private func showOnboarding() {
+        if let onboardingWindow, onboardingWindow.isVisible {
+            onboardingWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        showInDock()
+
+        let onboardingView = OnboardingWindowView { [weak self] in
+            self?.onboardingWindow?.close()
+            self?.onboardingWindow = nil
+            self?.hideFromDock()
+        }
+        .environmentObject(appViewModel)
+
+        let hostingController = NSHostingController(rootView: onboardingView)
+        let window = NSWindow(contentViewController: hostingController)
+        window.title = "Welcome to exímIA Meter"
+        window.setContentSize(NSSize(width: 520, height: 520))
+        window.styleMask = [.titled, .closable]
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
+        self.onboardingWindow = window
+    }
+
     // MARK: - Settings Window
 
     func openSettings() {
@@ -147,20 +200,57 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             return
         }
 
+        showInDock()
+
         let settingsView = SettingsWindowView()
             .environmentObject(appViewModel)
 
         let hostingController = NSHostingController(rootView: settingsView)
         let window = NSWindow(contentViewController: hostingController)
         window.title = "exímIA Meter Settings"
-        window.setContentSize(NSSize(width: 520, height: 440))
+        window.setContentSize(NSSize(width: 680, height: 520))
         window.styleMask = [.titled, .closable, .miniaturizable]
         window.center()
         window.isReleasedWhenClosed = false
+        window.delegate = self
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
         self.settingsWindow = window
+    }
+
+    // MARK: - Uninstall
+
+    func uninstallApp() {
+        let alert = NSAlert()
+        alert.messageText = "Uninstall exímIA Meter?"
+        alert.informativeText = "This will remove the app and all saved preferences. This action cannot be undone."
+        alert.alertStyle = .critical
+        alert.addButton(withTitle: "Uninstall")
+        alert.addButton(withTitle: "Cancel")
+
+        if alert.runModal() == .alertFirstButtonReturn {
+            // Clean up preferences
+            let defaults = UserDefaults.standard
+            for key in defaults.dictionaryRepresentation().keys {
+                defaults.removeObject(forKey: key)
+            }
+
+            // Remove app bundle via shell script
+            let appPath = Bundle.main.bundlePath
+            let script = """
+            sleep 1
+            rm -rf "\(appPath)"
+            """
+
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/bin/bash")
+            process.arguments = ["-c", script]
+            try? process.run()
+
+            // Quit the app
+            NSApp.terminate(nil)
+        }
     }
 
     // MARK: - Event Monitor
@@ -178,5 +268,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             NSEvent.removeMonitor(eventMonitor)
         }
         appViewModel.stop()
+    }
+}
+
+// MARK: - NSWindowDelegate
+
+extension AppDelegate: NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        guard let closingWindow = notification.object as? NSWindow else { return }
+
+        if closingWindow === settingsWindow {
+            settingsWindow = nil
+        } else if closingWindow === onboardingWindow {
+            onboardingWindow = nil
+        }
+
+        // Delay to let the window finish closing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.hideFromDock()
+        }
     }
 }

@@ -1,81 +1,97 @@
 import SwiftUI
 
+enum SettingsSection: String, CaseIterable, Identifiable {
+    case account = "Account"
+    case alerts = "Alerts"
+    case projects = "Projects"
+    case general = "General"
+    case about = "About"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .account:  return "person.circle"
+        case .alerts:   return "bell.badge"
+        case .projects: return "folder"
+        case .general:  return "gearshape"
+        case .about:    return "info.circle"
+        }
+    }
+}
+
 struct SettingsWindowView: View {
     @EnvironmentObject var appViewModel: AppViewModel
-    @State private var selectedTab = 0
-
-    private let tabs = [
-        ("gauge.with.dots.needle.33percent", "Thresholds"),
-        ("gearshape", "General"),
-        ("folder", "Projects"),
-        ("bell", "Notifications")
-    ]
+    @State private var selectedSection: SettingsSection = .account
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Custom tab bar
-            HStack(spacing: 0) {
-                ForEach(Array(tabs.enumerated()), id: \.offset) { index, tab in
-                    settingsTab(icon: tab.0, label: tab.1, index: index)
+        HStack(spacing: 0) {
+            // Sidebar
+            VStack(spacing: ExTokens.Spacing._4) {
+                ForEach(SettingsSection.allCases) { section in
+                    sidebarItem(section)
                 }
+                Spacer()
             }
-            .padding(.horizontal, ExTokens.Spacing._16)
-            .padding(.top, ExTokens.Spacing._16)
-            .padding(.bottom, ExTokens.Spacing._8)
+            .padding(.vertical, ExTokens.Spacing._16)
+            .padding(.horizontal, ExTokens.Spacing._8)
+            .frame(width: 180)
+            .background(ExTokens.Colors.backgroundDeep)
 
-            // Subtle divider
+            // Divider
             Rectangle()
                 .fill(ExTokens.Colors.borderDefault)
-                .frame(height: 1)
+                .frame(width: 1)
 
             // Content
             Group {
-                switch selectedTab {
-                case 0: ThresholdsTabView()
-                case 1: GeneralTabView()
-                case 2: ProjectsTabView()
-                case 3: NotificationsTabView()
-                default: ThresholdsTabView()
+                switch selectedSection {
+                case .account:  AccountTabView()
+                case .alerts:   AlertsTabView()
+                case .projects: ProjectsTabView()
+                case .general:  GeneralTabView()
+                case .about:    AboutTabView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 520, height: 460)
+        .frame(width: 680, height: 520)
         .background(ExTokens.Colors.backgroundPrimary)
     }
 
-    private func settingsTab(icon: String, label: String, index: Int) -> some View {
-        let isSelected = selectedTab == index
+    private func sidebarItem(_ section: SettingsSection) -> some View {
+        let isSelected = selectedSection == section
 
         return Button {
             withAnimation(.easeInOut(duration: 0.15)) {
-                selectedTab = index
+                selectedSection = section
             }
         } label: {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: isSelected ? .semibold : .regular))
-                    .foregroundColor(isSelected ? ExTokens.Colors.accentPrimary : ExTokens.Colors.textMuted)
+            HStack(spacing: ExTokens.Spacing._8) {
+                // Accent bar
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(isSelected ? ExTokens.Colors.accentPrimary : Color.clear)
+                    .frame(width: 3, height: 20)
 
-                Text(label)
-                    .font(.system(size: 10, weight: isSelected ? .bold : .medium))
+                Image(systemName: section.icon)
+                    .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                    .foregroundColor(isSelected ? ExTokens.Colors.accentPrimary : ExTokens.Colors.textMuted)
+                    .frame(width: 20)
+
+                Text(section.rawValue)
+                    .font(.system(size: 12, weight: isSelected ? .semibold : .regular))
                     .foregroundColor(isSelected ? ExTokens.Colors.textPrimary : ExTokens.Colors.textTertiary)
+
+                Spacer()
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+            .padding(.vertical, ExTokens.Spacing._6)
+            .padding(.horizontal, ExTokens.Spacing._4)
             .background(
                 isSelected
                     ? ExTokens.Colors.backgroundCard
                     : Color.clear
             )
-            .overlay(alignment: .bottom) {
-                if isSelected {
-                    Rectangle()
-                        .fill(ExTokens.Colors.accentPrimary)
-                        .frame(height: 2)
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.md))
         }
         .buttonStyle(.plain)
     }

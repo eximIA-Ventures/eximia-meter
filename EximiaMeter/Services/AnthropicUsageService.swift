@@ -14,7 +14,44 @@ final class AnthropicUsageService {
         return config
     }())
 
+    private var cachedCredentials: Credentials?
+    private var credentialsFetched = false
+
     private init() {}
+
+    // MARK: - Account Info
+
+    struct AccountInfo {
+        let isConnected: Bool
+        let tokenExpired: Bool
+        let subscriptionType: String?
+        let rateLimitTier: String?
+    }
+
+    /// Returns account connection info from cached/Keychain credentials.
+    func getAccountInfo() -> AccountInfo {
+        if !credentialsFetched {
+            credentialsFetched = true
+            cachedCredentials = readCredentials()
+        }
+
+        guard let credentials = cachedCredentials else {
+            return AccountInfo(isConnected: false, tokenExpired: false, subscriptionType: nil, rateLimitTier: nil)
+        }
+
+        let hasToken = credentials.accessToken != nil
+        var expired = false
+        if let expiresAt = credentials.expiresAt {
+            expired = Date().timeIntervalSince1970 * 1000 > Double(expiresAt)
+        }
+
+        return AccountInfo(
+            isConnected: hasToken && !expired,
+            tokenExpired: expired,
+            subscriptionType: credentials.subscriptionType,
+            rateLimitTier: credentials.rateLimitTier
+        )
+    }
 
     struct UsageResponse {
         let sessionUtilization: Double   // 0-100 percentage
@@ -25,7 +62,13 @@ final class AnthropicUsageService {
 
     /// Fetch usage from Anthropic API. Returns nil if token unavailable or request fails.
     func fetchUsage() async -> UsageResponse? {
-        guard let credentials = readCredentials(),
+        // Only attempt Keychain access once per app session to avoid repeated auth prompts
+        if !credentialsFetched {
+            credentialsFetched = true
+            cachedCredentials = readCredentials()
+        }
+
+        guard let credentials = cachedCredentials,
               let accessToken = credentials.accessToken else { return nil }
 
         // Check if token is expired
