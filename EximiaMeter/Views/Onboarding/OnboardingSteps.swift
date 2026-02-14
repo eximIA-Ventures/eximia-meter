@@ -220,9 +220,30 @@ struct OnboardingProjectsStep: View {
                         .font(.system(size: 12))
                         .foregroundColor(ExTokens.Colors.textTertiary)
 
-                    Text("You can add projects later from Settings")
+                    Text("Add a project folder manually")
                         .font(.system(size: 11))
                         .foregroundColor(ExTokens.Colors.textMuted)
+
+                    Button {
+                        addProjectFolder()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.system(size: 12))
+                            Text("Add Folder")
+                                .font(.system(size: 11, weight: .semibold))
+                        }
+                        .foregroundColor(ExTokens.Colors.accentPrimary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(ExTokens.Colors.accentPrimary.opacity(0.1))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: ExTokens.Radius.sm)
+                                .stroke(ExTokens.Colors.accentPrimary.opacity(0.2), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                    }
+                    .buttonStyle(.plain)
                 }
                 .frame(maxHeight: .infinity)
             } else {
@@ -240,6 +261,22 @@ struct OnboardingProjectsStep: View {
                         .foregroundColor(ExTokens.Colors.textTertiary)
 
                     Spacer()
+
+                    Button {
+                        addProjectFolder()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 9))
+                            Text("Add Folder")
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundColor(ExTokens.Colors.accentPrimary)
+                    }
+                    .buttonStyle(.plain)
+
+                    Text("·")
+                        .foregroundColor(ExTokens.Colors.textMuted)
 
                     Button {
                         if selectedProjectNames.count == available.count {
@@ -261,6 +298,24 @@ struct OnboardingProjectsStep: View {
             if selectedProjectNames.isEmpty {
                 // Pre-select all by default
                 selectedProjectNames = Set(available.map(\.name))
+            }
+        }
+    }
+
+    private func addProjectFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.message = "Select a project directory"
+
+        if panel.runModal() == .OK, let url = panel.url {
+            let name = url.lastPathComponent
+            let path = url.path
+            let project = Project(name: name, path: path)
+            if !available.contains(where: { $0.path == path }) {
+                available.append(project)
+                selectedProjectNames.insert(name)
             }
         }
     }
