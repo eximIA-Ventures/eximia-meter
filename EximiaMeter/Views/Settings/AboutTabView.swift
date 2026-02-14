@@ -179,11 +179,21 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v1.2.0", items: [
+                                "Improved header: prominent Settings button, plan badge",
+                                "Refresh integrated into footer timestamp",
+                                "About: real ExLogoIcon, 2-step update flow, changelog",
+                                "macOS 26 SDK compatibility fixes"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v1.1.0", items: [
                                 "Sidebar navigation settings redesign",
                                 "Account tab with API auto-detection",
                                 "Merged Alerts tab (thresholds + notifications)",
-                                "About tab with update checker & changelog",
                                 "Onboarding: add/remove project folders"
                             ])
 
