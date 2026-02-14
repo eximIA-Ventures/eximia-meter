@@ -179,6 +179,14 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v1.5.7", items: [
+                                "Fix: force dark mode on all views (fixes black text on light mode Macs)"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v1.5.6", items: [
                                 "Fix: token expired auto-refreshes from Keychain (CLI may have renewed)",
                                 "New: Reconnect button in Account tab when disconnected",

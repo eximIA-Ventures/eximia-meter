@@ -134,6 +134,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         let contentView = PopoverContentView()
             .environmentObject(appViewModel)
+            .preferredColorScheme(.dark)
 
         popover.contentViewController = NSHostingController(rootView: contentView)
         self.popover = popover
@@ -171,6 +172,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             self?.hideFromDock()
         }
         .environmentObject(appViewModel)
+        .preferredColorScheme(.dark)
 
         let hostingController = NSHostingController(rootView: onboardingView)
         let window = NSWindow(contentViewController: hostingController)
@@ -204,6 +206,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         let settingsView = SettingsWindowView()
             .environmentObject(appViewModel)
+            .preferredColorScheme(.dark)
 
         let hostingController = NSHostingController(rootView: settingsView)
         let window = NSWindow(contentViewController: hostingController)
