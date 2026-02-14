@@ -120,7 +120,10 @@ chmod +x "$APP_BUNDLE/Contents/MacOS/EximiaMeter"
 cp "$SRC_DIR/Info.plist" "$APP_BUNDLE/Contents/"
 cp "$SRC_DIR/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/" 2>/dev/null || true
 echo -n "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"
-ok "App bundle created"
+
+# Code sign (ad-hoc) — binds Info.plist, required for notifications
+codesign --force --deep --sign - "$APP_BUNDLE"
+ok "App bundle created and signed"
 
 # ─── Install ─────────────────────────────────────────
 head "Installing..."

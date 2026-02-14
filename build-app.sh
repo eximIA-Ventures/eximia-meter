@@ -49,6 +49,11 @@ echo "📦 App bundle created at: $APP_BUNDLE"
 # Make executable
 chmod +x "$APP_BUNDLE/Contents/MacOS/EximiaMeter"
 
+# Code sign the bundle (ad-hoc) — binds Info.plist to binary
+# This is required for UNUserNotificationCenter to work properly
+codesign --force --deep --sign - "$APP_BUNDLE"
+echo "✅ Code signed (ad-hoc)"
+
 # Show result
 echo ""
 echo "════════════════════════════════════════════════"

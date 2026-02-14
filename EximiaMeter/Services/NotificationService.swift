@@ -27,12 +27,21 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     }
 
     func requestPermission() {
+        let bundleId = Bundle.main.bundleIdentifier ?? "nil"
+        print("[Notifications] bundleIdentifier: \(bundleId)")
+
         guard Bundle.main.bundleIdentifier != nil else {
-            print("[Notifications] unavailable: no bundle identifier")
+            print("[Notifications] unavailable: no bundle identifier (running via swift run?)")
             return
         }
 
         let center = UNUserNotificationCenter.current()
+
+        // Check current authorization status first
+        center.getNotificationSettings { settings in
+            print("[Notifications] current status: \(settings.authorizationStatus.rawValue) (0=notDetermined, 1=denied, 2=authorized, 3=provisional)")
+        }
+
         center.requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
             DispatchQueue.main.async {
                 self?.permissionGranted = granted
@@ -40,11 +49,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             if let error {
                 print("[Notifications] permission error: \(error)")
             }
-            if granted {
-                print("[Notifications] permission granted")
-            } else {
-                print("[Notifications] permission denied by user")
-            }
+            print("[Notifications] permission \(granted ? "granted" : "denied")")
         }
     }
 
@@ -133,6 +138,27 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             ? "Session usage at 95%! Near limit."
             : "Session usage at 65% — warning level"
 
+        print("[Notifications] sendTestNotification(\(severity)) — bundleId: \(Bundle.main.bundleIdentifier ?? "nil"), permissionGranted: \(permissionGranted)")
+
+        // Check permission status before sending
+        UNUserNotificationCenter.current().getNotificationSettings { [self] settings in
+            print("[Notifications] authStatus: \(settings.authorizationStatus.rawValue), alertSetting: \(settings.alertSetting.rawValue)")
+
+            guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+                print("[Notifications] NOT authorized — requesting permission now")
+                self.requestPermission()
+                // Try sending anyway after a short delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    self.doSendNotification(title: title, body: body, severity: severity)
+                }
+                return
+            }
+
+            self.doSendNotification(title: title, body: body, severity: severity)
+        }
+    }
+
+    private func doSendNotification(title: String, body: String, severity: String) {
         let content = UNMutableNotificationContent()
         content.title = "eximIA Meter — \(title)"
         content.body = body
@@ -143,9 +169,9 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
         UNUserNotificationCenter.current().add(request) { error in
             if let error {
-                print("[Notifications] test notification failed: \(error)")
+                print("[Notifications] test notification FAILED: \(error)")
             } else {
-                print("[Notifications] test notification sent: \(id)")
+                print("[Notifications] test notification SENT OK: \(id)")
             }
         }
     }
