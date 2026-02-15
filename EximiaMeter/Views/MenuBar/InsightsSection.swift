@@ -47,11 +47,11 @@ struct InsightsSection: View {
                 if isExpanded {
                     VStack(spacing: ExTokens.Spacing._8) {
                         // Top row: Cost + Streak + Week comparison
-                        HStack(spacing: ExTokens.Spacing._8) {
+                        HStack(spacing: ExTokens.Spacing._6) {
                             if usage.estimatedWeeklyCostUSD > 0 {
                                 InsightPill(
                                     icon: "dollarsign.circle.fill",
-                                    label: "Custo 7d",
+                                    label: "CUSTO 7D",
                                     value: usage.formattedWeeklyCost,
                                     color: ExTokens.Colors.statusWarning
                                 )
@@ -60,8 +60,8 @@ struct InsightsSection: View {
                             if usage.usageStreak > 1 {
                                 InsightPill(
                                     icon: "flame.fill",
-                                    label: "Streak",
-                                    value: "\(usage.usageStreak) dias",
+                                    label: "STREAK",
+                                    value: "\(usage.usageStreak)d",
                                     color: ExTokens.Colors.accentPrimary
                                 )
                             }
@@ -69,7 +69,7 @@ struct InsightsSection: View {
                             if let wow = usage.weekOverWeekChange {
                                 InsightPill(
                                     icon: usage.weekOverWeekIsUp ? "arrow.up.right" : "arrow.down.right",
-                                    label: "Semana",
+                                    label: "SEMANA",
                                     value: wow,
                                     color: usage.weekOverWeekIsUp ? ExTokens.Colors.statusWarning : ExTokens.Colors.statusSuccess
                                 )

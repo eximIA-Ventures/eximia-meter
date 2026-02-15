@@ -96,7 +96,7 @@ struct PopoverContentView: View {
 
             FooterView()
         }
-        .frame(width: 420, height: 620)
+        .frame(width: 440, height: 680)
         .background(ExTokens.Colors.backgroundPrimary)
         .animation(.easeInOut(duration: 0.3), value: alertBanner)
         .animation(.easeInOut(duration: 0.2), value: updateAvailable)

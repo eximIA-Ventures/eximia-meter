@@ -3,6 +3,8 @@ import SwiftUI
 struct ProjectsTabView: View {
     @EnvironmentObject var appViewModel: AppViewModel
     @State private var showingDiscovery = false
+    @State private var newGroupName = ""
+    @State private var showingNewGroupInput = false
 
     private var projects: ProjectsViewModel {
         appViewModel.projectsViewModel
@@ -18,7 +20,7 @@ struct ProjectsTabView: View {
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(ExTokens.Colors.textPrimary)
 
-                        Text("Toggle visibility and reorder by dragging")
+                        Text("Toggle visibility, reorder, and group projects")
                             .font(ExTokens.Typography.caption)
                             .foregroundColor(ExTokens.Colors.textTertiary)
                     }
@@ -86,6 +88,7 @@ struct ProjectsTabView: View {
                             index: index + 1,
                             project: project,
                             isVisible: isVisible,
+                            allGroups: projects.allGroups,
                             onToggleVisibility: {
                                 projects.toggleMainPage(for: project)
                             },
@@ -94,6 +97,9 @@ struct ProjectsTabView: View {
                             },
                             onColorChange: { hex in
                                 projects.updateColor(for: project, hex: hex)
+                            },
+                            onGroupChange: { group in
+                                projects.updateGroup(for: project, group: group)
                             },
                             onRemove: {
                                 projects.removeProject(project)
@@ -282,9 +288,11 @@ struct ProjectSettingsRow: View {
     let index: Int
     let project: Project
     let isVisible: Bool
+    var allGroups: [String] = []
     var onToggleVisibility: () -> Void
     var onModelChange: (ClaudeModel) -> Void
     var onColorChange: ((String) -> Void)?
+    var onGroupChange: ((String?) -> Void)?
     var onRemove: () -> Void
 
     @State private var selectedModel: ClaudeModel
@@ -292,112 +300,160 @@ struct ProjectSettingsRow: View {
     @State private var isHovered = false
     @State private var isUpdatingAIOS = false
     @State private var aiosUpdateResult: Bool? = nil
+    @State private var showingNewGroup = false
+    @State private var newGroupText = ""
 
-    init(index: Int, project: Project, isVisible: Bool, onToggleVisibility: @escaping () -> Void, onModelChange: @escaping (ClaudeModel) -> Void, onColorChange: ((String) -> Void)? = nil, onRemove: @escaping () -> Void) {
+    init(index: Int, project: Project, isVisible: Bool, allGroups: [String] = [], onToggleVisibility: @escaping () -> Void, onModelChange: @escaping (ClaudeModel) -> Void, onColorChange: ((String) -> Void)? = nil, onGroupChange: ((String?) -> Void)? = nil, onRemove: @escaping () -> Void) {
         self.index = index
         self.project = project
         self.isVisible = isVisible
+        self.allGroups = allGroups
         self.onToggleVisibility = onToggleVisibility
         self.onModelChange = onModelChange
         self.onColorChange = onColorChange
+        self.onGroupChange = onGroupChange
         self.onRemove = onRemove
         self._selectedModel = State(initialValue: project.selectedModel)
         self._selectedColor = State(initialValue: Color(hex: project.colorHex))
     }
 
     var body: some View {
-        HStack(spacing: 8) {
-            // Visibility toggle
-            Button(action: onToggleVisibility) {
-                Image(systemName: isVisible ? "eye.fill" : "eye.slash")
-                    .font(.system(size: 11))
-                    .foregroundColor(isVisible ? ExTokens.Colors.accentPrimary : ExTokens.Colors.textMuted)
-                    .frame(width: 24, height: 24)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(HoverableButtonStyle())
-            .help(isVisible ? "Hide from main page" : "Show on main page")
-
-            // Index
-            Text("\(index)")
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundColor(ExTokens.Colors.textMuted)
-                .frame(width: 14)
-
-            // Drag handle
-            Image(systemName: "line.3.horizontal")
-                .font(.system(size: 8))
-                .foregroundColor(ExTokens.Colors.textMuted)
-
-            // Color dot (clickable picker)
-            ColorPicker("", selection: $selectedColor, supportsOpacity: false)
-                .labelsHidden()
-                .frame(width: 16, height: 16)
-                .onChange(of: selectedColor) { _, newColor in
-                    if let hex = newColor.toHex() {
-                        onColorChange?(hex)
-                    }
-                }
-
-            // Project info
-            VStack(alignment: .leading, spacing: 1) {
-                Text(project.name)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(isVisible ? ExTokens.Colors.textPrimary : ExTokens.Colors.textTertiary)
-
-                Text(project.path)
-                    .font(.system(size: 8, design: .monospaced))
-                    .foregroundColor(ExTokens.Colors.textMuted)
-                    .lineLimit(2)
-                    .truncationMode(.tail)
-            }
-
-            Spacer()
-
-            // Model picker
-            ModelPickerView(selectedModel: $selectedModel, compact: true)
-                .onChange(of: selectedModel) { _, newValue in
-                    onModelChange(newValue)
-                }
-
-            // AIOS update button (only for AIOS projects)
-            if project.isAIOSProject {
-                Button {
-                    updateAIOS()
-                } label: {
-                    Group {
-                        if isUpdatingAIOS {
-                            ProgressView()
-                                .controlSize(.small)
-                                .scaleEffect(0.6)
-                        } else if let result = aiosUpdateResult {
-                            Image(systemName: result ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .font(.system(size: 12))
-                                .foregroundColor(result ? ExTokens.Colors.statusSuccess : ExTokens.Colors.statusCritical)
-                        } else {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.system(size: 11))
-                                .foregroundColor(ExTokens.Colors.accentPrimary)
-                        }
-                    }
-                    .frame(width: 24, height: 24)
-                    .contentShape(Rectangle())
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                // Visibility toggle
+                Button(action: onToggleVisibility) {
+                    Image(systemName: isVisible ? "eye.fill" : "eye.slash")
+                        .font(.system(size: 11))
+                        .foregroundColor(isVisible ? ExTokens.Colors.accentPrimary : ExTokens.Colors.textMuted)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(HoverableButtonStyle())
-                .disabled(isUpdatingAIOS)
-                .help("Update AIOS (npx aios-core@latest install)")
-            }
+                .help(isVisible ? "Hide from main page" : "Show on main page")
 
-            // Remove button
-            Button(action: onRemove) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(isHovered ? ExTokens.Colors.statusCritical : ExTokens.Colors.textMuted)
-                    .frame(width: 24, height: 24)
-                    .contentShape(Rectangle())
+                // Index
+                Text("\(index)")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(ExTokens.Colors.textMuted)
+                    .frame(width: 14)
+
+                // Drag handle
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 8))
+                    .foregroundColor(ExTokens.Colors.textMuted)
+
+                // Color dot (clickable picker)
+                ColorPicker("", selection: $selectedColor, supportsOpacity: false)
+                    .labelsHidden()
+                    .frame(width: 16, height: 16)
+                    .onChange(of: selectedColor) { _, newColor in
+                        if let hex = newColor.toHex() {
+                            onColorChange?(hex)
+                        }
+                    }
+
+                // Project info
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(spacing: 4) {
+                        Text(project.name)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(isVisible ? ExTokens.Colors.textPrimary : ExTokens.Colors.textTertiary)
+
+                        if let group = project.group, !group.isEmpty {
+                            Text(group)
+                                .font(.system(size: 7, weight: .bold))
+                                .foregroundColor(ExTokens.Colors.accentSecondary)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(ExTokens.Colors.accentSecondary.opacity(0.15))
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                        }
+                    }
+
+                    Text(project.path)
+                        .font(.system(size: 8, design: .monospaced))
+                        .foregroundColor(ExTokens.Colors.textMuted)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+
+                Spacer()
+
+                // Group menu
+                Menu {
+                    Button("Sem grupo") {
+                        onGroupChange?(nil)
+                    }
+
+                    if !allGroups.isEmpty {
+                        Divider()
+                        ForEach(allGroups, id: \.self) { group in
+                            Button(group) {
+                                onGroupChange?(group)
+                            }
+                        }
+                    }
+
+                    Divider()
+                    Button("Novo grupo...") {
+                        showingNewGroup = true
+                    }
+                } label: {
+                    Image(systemName: "folder.badge.gearshape")
+                        .font(.system(size: 10))
+                        .foregroundColor(project.group != nil ? ExTokens.Colors.accentSecondary : ExTokens.Colors.textMuted)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .menuStyle(.borderlessButton)
+                .frame(width: 24)
+                .help("Grupo: \(project.group ?? "nenhum")")
+
+                // Model picker
+                ModelPickerView(selectedModel: $selectedModel, compact: true)
+                    .onChange(of: selectedModel) { _, newValue in
+                        onModelChange(newValue)
+                    }
+
+                // AIOS update button (only for AIOS projects)
+                if project.isAIOSProject {
+                    Button {
+                        updateAIOS()
+                    } label: {
+                        Group {
+                            if isUpdatingAIOS {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .scaleEffect(0.6)
+                            } else if let result = aiosUpdateResult {
+                                Image(systemName: result ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(result ? ExTokens.Colors.statusSuccess : ExTokens.Colors.statusCritical)
+                            } else {
+                                Image(systemName: "arrow.triangle.2.circlepath")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(ExTokens.Colors.accentPrimary)
+                            }
+                        }
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(HoverableButtonStyle())
+                    .disabled(isUpdatingAIOS)
+                    .help("Update AIOS (npx aios-core@latest install)")
+                }
+
+                // Remove button
+                Button(action: onRemove) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(isHovered ? ExTokens.Colors.statusCritical : ExTokens.Colors.textMuted)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .onHover { hovering in isHovered = hovering }
             }
-            .buttonStyle(.plain)
-            .onHover { hovering in isHovered = hovering }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -416,6 +472,19 @@ struct ProjectSettingsRow: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.md))
         .animation(.easeInOut(duration: 0.15), value: isVisible)
+        .alert("Novo Grupo", isPresented: $showingNewGroup) {
+            TextField("Nome do grupo", text: $newGroupText)
+            Button("Cancelar", role: .cancel) { newGroupText = "" }
+            Button("Criar") {
+                let trimmed = newGroupText.trimmingCharacters(in: .whitespaces)
+                if !trimmed.isEmpty {
+                    onGroupChange?(trimmed)
+                }
+                newGroupText = ""
+            }
+        } message: {
+            Text("Digite o nome do novo grupo para este projeto.")
+        }
     }
 
     private func updateAIOS() {

@@ -33,10 +33,19 @@ struct ProjectCardView: View {
         self._selectedOptimization = State(initialValue: project.optimizationLevel)
     }
 
+    private var projectColor: Color {
+        Color(hex: project.colorHex)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // ─── Header Row ─────────────────────────────
-            HStack {
+            HStack(spacing: 6) {
+                // Color indicator dot
+                Circle()
+                    .fill(projectColor)
+                    .frame(width: 8, height: 8)
+
                 Text(project.name)
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(ExTokens.Colors.textPrimary)
@@ -241,20 +250,19 @@ struct ProjectCardView: View {
             RoundedRectangle(cornerRadius: ExTokens.Radius.lg)
                 .stroke(
                     isHovered
-                        ? ExTokens.Colors.accentPrimary.opacity(0.5)
+                        ? projectColor.opacity(0.5)
                         : ExTokens.Colors.borderDefault,
                     lineWidth: 1
                 )
         )
         .overlay(alignment: .top) {
-            if isHovered {
-                LinearGradient(
-                    colors: [.clear, ExTokens.Colors.accentPrimary.opacity(0.5), .clear],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-                .frame(height: 1)
-            }
+            // Colored top bar
+            LinearGradient(
+                colors: [.clear, projectColor.opacity(isHovered ? 0.6 : 0.3), .clear],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(height: 1.5)
         }
         .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.lg))
         .onHover { hovering in

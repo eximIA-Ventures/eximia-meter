@@ -123,7 +123,11 @@ struct UsageData {
     }
 
     var formattedWeeklyCost: String {
-        if estimatedWeeklyCostUSD >= 100 {
+        if estimatedWeeklyCostUSD >= 10_000 {
+            return String(format: "$%.1fK", estimatedWeeklyCostUSD / 1_000)
+        } else if estimatedWeeklyCostUSD >= 1_000 {
+            return String(format: "$%.2fK", estimatedWeeklyCostUSD / 1_000)
+        } else if estimatedWeeklyCostUSD >= 100 {
             return String(format: "$%.0f", estimatedWeeklyCostUSD)
         } else if estimatedWeeklyCostUSD >= 1 {
             return String(format: "$%.2f", estimatedWeeklyCostUSD)
@@ -214,7 +218,10 @@ struct UsageData {
         guard tokensPreviousWeek > 0, tokens7d > 0 else { return nil }
         let change = Double(tokens7d - tokensPreviousWeek) / Double(tokensPreviousWeek) * 100
         let sign = change >= 0 ? "+" : ""
-        return "\(sign)\(Int(change))% vs semana anterior"
+        if abs(change) >= 1000 {
+            return "\(sign)\(String(format: "%.1f", change / 1000))K%"
+        }
+        return "\(sign)\(Int(change))%"
     }
 
     var weekOverWeekIsUp: Bool {
