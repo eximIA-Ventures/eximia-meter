@@ -10,6 +10,10 @@ struct HeatmapView: View {
         hourCounts.values.max() ?? 1
     }
 
+    private var totalSessions: Int {
+        hourCounts.values.reduce(0, +)
+    }
+
     var body: some View {
         VStack(spacing: 4) {
             // Hour blocks grid (single row of 24 blocks)
@@ -21,12 +25,19 @@ struct HeatmapView: View {
 
                     RoundedRectangle(cornerRadius: 2)
                         .fill(cellColor(intensity: intensity))
-                        .frame(height: 14)
+                        .frame(height: 16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 2)
+                                .stroke(
+                                    intensity > 0.6 ? ExTokens.Colors.accentPrimary.opacity(0.2) : Color.clear,
+                                    lineWidth: 0.5
+                                )
+                        )
                         .help("\(key):00 — \(count) sessões")
                 }
             }
 
-            // Hour labels
+            // Hour labels + total
             HStack(spacing: 0) {
                 ForEach(hourLabels, id: \.self) { label in
                     Text(label)
@@ -42,15 +53,15 @@ struct HeatmapView: View {
         if intensity == 0 {
             return ExTokens.Colors.backgroundElevated
         } else if intensity < 0.2 {
-            return Color(hex: "#78350F").opacity(0.5) // Dark amber
+            return Color(hex: "#78350F").opacity(0.5)
         } else if intensity < 0.4 {
-            return Color(hex: "#B45309").opacity(0.7) // Medium amber
+            return Color(hex: "#B45309").opacity(0.7)
         } else if intensity < 0.6 {
-            return Color(hex: "#D97706") // Bright amber
+            return Color(hex: "#D97706")
         } else if intensity < 0.8 {
-            return Color(hex: "#F59E0B") // Full amber
+            return Color(hex: "#F59E0B")
         } else {
-            return Color(hex: "#FBBF24") // Brightest amber-yellow
+            return Color(hex: "#FBBF24")
         }
     }
 }

@@ -122,25 +122,105 @@ struct ProjectsTabView: View {
                     }
 
                     // Group Management section
-                    if !projects.allGroups.isEmpty {
-                        Section {
-                            ForEach(projects.allGroups, id: \.self) { group in
-                                groupManagementRow(group)
-                                    .listRowBackground(Color.clear)
-                                    .listRowSeparator(.hidden)
-                                    .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
-                            }
-                        } header: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "folder.badge.gearshape")
-                                    .font(.system(size: 10))
-                                Text("GERENCIAR GRUPOS")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .tracking(1)
-                            }
-                            .foregroundColor(ExTokens.Colors.textMuted)
-                            .padding(.top, ExTokens.Spacing._8)
+                    Section {
+                        // Existing groups
+                        ForEach(projects.allGroups, id: \.self) { group in
+                            groupManagementRow(group)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
                         }
+
+                        // Create new group inline
+                        if showingNewGroup {
+                            HStack(spacing: 8) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(ExTokens.Colors.statusSuccess)
+
+                                TextField("Nome do grupo", text: $newGroupText)
+                                    .textFieldStyle(.plain)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(ExTokens.Colors.textPrimary)
+                                    .onSubmit {
+                                        createNewGroup()
+                                    }
+
+                                Button {
+                                    createNewGroup()
+                                } label: {
+                                    Text("Criar")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(.black)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(ExTokens.Colors.accentPrimary)
+                                        .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                                }
+                                .buttonStyle(HoverableButtonStyle())
+
+                                Button {
+                                    showingNewGroup = false
+                                    newGroupText = ""
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 9))
+                                        .foregroundColor(ExTokens.Colors.textMuted)
+                                        .frame(width: 20, height: 20)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(HoverableButtonStyle())
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(ExTokens.Colors.backgroundCard)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: ExTokens.Radius.md)
+                                    .stroke(ExTokens.Colors.statusSuccess.opacity(0.3), lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.md))
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
+                        }
+
+                        // Add group button
+                        if !showingNewGroup {
+                            Button {
+                                withAnimation { showingNewGroup = true }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 9))
+                                    Text("Novo Grupo")
+                                        .font(.system(size: 10, weight: .bold))
+                                }
+                                .foregroundColor(ExTokens.Colors.accentPrimary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                            }
+                            .buttonStyle(HoverableButtonStyle())
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
+                        }
+                    } header: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "folder.badge.gearshape")
+                                .font(.system(size: 10))
+                                .foregroundColor(ExTokens.Colors.accentSecondary)
+                            Text("GERENCIAR GRUPOS")
+                                .font(.system(size: 10, weight: .bold))
+                                .tracking(1)
+
+                            Spacer()
+
+                            Text("\(projects.allGroups.count) grupo\(projects.allGroups.count == 1 ? "" : "s")")
+                                .font(.system(size: 9, design: .monospaced))
+                                .foregroundColor(ExTokens.Colors.textTertiary)
+                        }
+                        .foregroundColor(ExTokens.Colors.textMuted)
+                        .padding(.top, ExTokens.Spacing._8)
                     }
                 }
                 .listStyle(.plain)
@@ -174,6 +254,17 @@ struct ProjectsTabView: View {
         } message: {
             Text("Digite o novo nome para o grupo \"\(editingGroup ?? "")\".")
         }
+    }
+
+    private func createNewGroup() {
+        let trimmed = newGroupText.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        // Assign the first ungrouped project to this group (creates the group)
+        if let firstUngrouped = projects.projects.firstIndex(where: { $0.group == nil }) {
+            projects.updateGroup(for: projects.projects[firstUngrouped], group: trimmed)
+        }
+        newGroupText = ""
+        showingNewGroup = false
     }
 
     private func groupManagementRow(_ group: String) -> some View {

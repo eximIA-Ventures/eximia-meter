@@ -16,22 +16,27 @@ struct SparklineView: View {
                 let isToday = label == "Hoje"
 
                 VStack(spacing: 3) {
-                    // Token count on top of the bar (only for non-zero)
+                    // Token count above bar
                     if value > 0 {
                         Text(formatShort(value))
-                            .font(.system(size: 6, weight: .bold, design: .monospaced))
+                            .font(.system(size: 7, weight: .bold, design: .monospaced))
                             .foregroundColor(isToday ? barColor : ExTokens.Colors.textTertiary)
                     }
 
+                    // Bar with gradient
                     RoundedRectangle(cornerRadius: 3)
                         .fill(
-                            value == 0
-                                ? ExTokens.Colors.borderDefault
-                                : (isToday
-                                    ? barColor
-                                    : barColor.opacity(0.25 + 0.55 * ratio))
+                            LinearGradient(
+                                colors: value == 0
+                                    ? [ExTokens.Colors.borderDefault, ExTokens.Colors.borderDefault]
+                                    : (isToday
+                                        ? [barColor.opacity(0.8), barColor]
+                                        : [barColor.opacity(0.15 + 0.35 * ratio), barColor.opacity(0.25 + 0.55 * ratio)]),
+                                startPoint: .bottom,
+                                endPoint: .top
+                            )
                         )
-                        .frame(height: max(3, 36 * ratio))
+                        .frame(height: max(4, 50 * ratio))
 
                     Text(label)
                         .font(.system(size: 7, weight: isToday ? .bold : .regular, design: .monospaced))
@@ -40,12 +45,12 @@ struct SparklineView: View {
                 .frame(maxWidth: .infinity)
             }
         }
-        .frame(height: 60)
+        .frame(height: 76)
     }
 
     private func formatShort(_ count: Int) -> String {
         if count >= 1_000_000 {
-            return String(format: "%.0fM", Double(count) / 1_000_000)
+            return String(format: "%.1fM", Double(count) / 1_000_000)
         } else if count >= 1_000 {
             return String(format: "%.0fK", Double(count) / 1_000)
         }

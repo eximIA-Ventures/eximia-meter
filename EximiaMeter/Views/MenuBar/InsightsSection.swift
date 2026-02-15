@@ -20,7 +20,7 @@ struct InsightsSection: View {
 
     var body: some View {
         if hasAnyInsight {
-            VStack(spacing: ExTokens.Spacing._8) {
+            VStack(spacing: ExTokens.Spacing._12) {
                 // Header
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -45,7 +45,7 @@ struct InsightsSection: View {
                 .buttonStyle(HoverableButtonStyle())
 
                 if isExpanded {
-                    VStack(spacing: ExTokens.Spacing._8) {
+                    VStack(spacing: ExTokens.Spacing._12) {
                         // Top row: Cost + Streak + Week comparison
                         HStack(spacing: ExTokens.Spacing._6) {
                             if usage.estimatedWeeklyCostUSD > 0 {
@@ -78,66 +78,99 @@ struct InsightsSection: View {
 
                         // Sparkline (7 days)
                         if !usage.last7DaysTokens.isEmpty && usage.last7DaysTokens.contains(where: { $0.1 > 0 }) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("TOKENS POR DIA (7D)")
-                                    .font(.system(size: 8, weight: .bold))
-                                    .tracking(1)
-                                    .foregroundColor(ExTokens.Colors.textMuted)
+                            insightCard {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    insightSectionHeader("TOKENS POR DIA (7D)", icon: "chart.bar.fill")
 
-                                SparklineView(data: usage.last7DaysTokens)
+                                    SparklineView(data: usage.last7DaysTokens)
+                                }
                             }
                         }
 
                         // Activity heatmap
                         if !usage.hourCounts.isEmpty {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("ATIVIDADE POR HORA")
-                                    .font(.system(size: 8, weight: .bold))
-                                    .tracking(1)
-                                    .foregroundColor(ExTokens.Colors.textMuted)
+                            insightCard {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    insightSectionHeader("ATIVIDADE POR HORA", icon: "clock.fill")
 
-                                HeatmapView(hourCounts: usage.hourCounts)
+                                    HeatmapView(hourCounts: usage.hourCounts)
+                                }
                             }
                         }
 
                         // Peak detection alert
                         if let peak = usage.peakDetectionMessage {
-                            HStack(spacing: 6) {
-                                Image(systemName: "bolt.fill")
-                                    .font(.system(size: 9))
-                                    .foregroundColor(ExTokens.Colors.statusWarning)
-                                Text(peak)
-                                    .font(ExTokens.Typography.caption)
-                                    .foregroundColor(ExTokens.Colors.statusWarning)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(ExTokens.Colors.statusWarning.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                            insightAlert(
+                                icon: "bolt.fill",
+                                message: peak,
+                                color: ExTokens.Colors.statusWarning
+                            )
                         }
 
                         // Model suggestion
                         if let suggestion = usage.modelSuggestion {
-                            HStack(spacing: 6) {
-                                Image(systemName: "lightbulb.fill")
-                                    .font(.system(size: 9))
-                                    .foregroundColor(ExTokens.Colors.accentPrimary)
-                                Text(suggestion)
-                                    .font(ExTokens.Typography.caption)
-                                    .foregroundColor(ExTokens.Colors.textSecondary)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
-                            .background(ExTokens.Colors.accentPrimary.opacity(0.08))
-                            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                            insightAlert(
+                                icon: "lightbulb.fill",
+                                message: suggestion,
+                                color: ExTokens.Colors.accentPrimary
+                            )
                         }
                     }
                 }
             }
             .padding(.horizontal, ExTokens.Spacing.popoverPadding)
         }
+    }
+
+    // MARK: - Shared Components
+
+    private func insightSectionHeader(_ title: String, icon: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 8))
+                .foregroundColor(ExTokens.Colors.accentPrimary.opacity(0.6))
+            Text(title)
+                .font(.system(size: 8, weight: .bold))
+                .tracking(1)
+                .foregroundColor(ExTokens.Colors.textMuted)
+        }
+    }
+
+    private func insightCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(10)
+            .background(ExTokens.Colors.backgroundCard)
+            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.md))
+            .overlay(
+                RoundedRectangle(cornerRadius: ExTokens.Radius.md)
+                    .stroke(ExTokens.Colors.borderDefault, lineWidth: 1)
+            )
+    }
+
+    private func insightAlert(icon: String, message: String, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 10))
+                .foregroundColor(color)
+                .frame(width: 22, height: 22)
+                .background(color.opacity(0.15))
+                .clipShape(RoundedRectangle(cornerRadius: 5))
+
+            Text(message)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(color == ExTokens.Colors.accentPrimary ? ExTokens.Colors.textSecondary : color)
+                .lineLimit(2)
+
+            Spacer()
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(color.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.md))
+        .overlay(
+            RoundedRectangle(cornerRadius: ExTokens.Radius.md)
+                .stroke(color.opacity(0.15), lineWidth: 1)
+        )
     }
 }
 
@@ -149,30 +182,53 @@ struct InsightPill: View {
     let value: String
     let color: Color
 
+    @State private var isHovered = false
+
     var body: some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 5) {
+            // Icon with colored background
             Image(systemName: icon)
-                .font(.system(size: 10))
+                .font(.system(size: 11))
                 .foregroundColor(color)
+                .frame(width: 26, height: 26)
+                .background(color.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
 
             Text(value)
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
                 .foregroundColor(ExTokens.Colors.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
             Text(label)
-                .font(.system(size: 7, weight: .medium))
+                .font(.system(size: 7, weight: .bold))
                 .foregroundColor(ExTokens.Colors.textMuted)
-                .textCase(.uppercase)
+                .tracking(0.5)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 6)
+        .padding(.vertical, 10)
         .background(ExTokens.Colors.backgroundCard)
         .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.md))
         .overlay(
             RoundedRectangle(cornerRadius: ExTokens.Radius.md)
-                .stroke(ExTokens.Colors.borderDefault, lineWidth: 1)
+                .stroke(
+                    isHovered ? color.opacity(0.4) : ExTokens.Colors.borderDefault,
+                    lineWidth: 1
+                )
         )
+        .overlay(alignment: .top) {
+            // Subtle colored top line
+            LinearGradient(
+                colors: [.clear, color.opacity(isHovered ? 0.5 : 0.2), .clear],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(height: 1)
+        }
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                isHovered = hovering
+            }
+        }
     }
 }

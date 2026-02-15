@@ -190,36 +190,69 @@ struct PopoverContentView: View {
 
     // MARK: - Projects Content
 
+    @State private var collapsedGroups: Set<String> = []
+
     private var projectsContent: some View {
-        VStack(spacing: ExTokens.Spacing._4) {
+        VStack(spacing: ExTokens.Spacing._8) {
             let grouped = appViewModel.projectsViewModel.groupedProjects()
 
             ForEach(Array(grouped.enumerated()), id: \.offset) { _, group in
                 let (groupName, groupProjects) = group
+                let groupKey = groupName.isEmpty ? "__ungrouped__" : groupName
+                let isCollapsed = collapsedGroups.contains(groupKey)
 
-                VStack(alignment: .leading, spacing: ExTokens.Spacing._4) {
-                    // Group header
-                    HStack(spacing: 6) {
-                        Image(systemName: groupName.isEmpty ? "tray.fill" : "folder.fill")
-                            .font(.system(size: 9))
-                        Text(groupName.isEmpty ? "Sem grupo" : groupName)
-                            .font(.system(size: 10, weight: .bold))
-                            .textCase(.uppercase)
-                            .tracking(0.8)
+                VStack(spacing: 0) {
+                    // Group header — clickable to collapse
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            if isCollapsed {
+                                collapsedGroups.remove(groupKey)
+                            } else {
+                                collapsedGroups.insert(groupKey)
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                                .font(.system(size: 7, weight: .bold))
+                                .foregroundColor(ExTokens.Colors.textMuted)
+                                .frame(width: 12)
 
-                        Spacer()
+                            Image(systemName: groupName.isEmpty ? "tray.fill" : "folder.fill")
+                                .font(.system(size: 9))
+                                .foregroundColor(groupName.isEmpty ? ExTokens.Colors.textMuted : ExTokens.Colors.accentSecondary)
 
-                        Text("\(groupProjects.count)")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundColor(ExTokens.Colors.accentPrimary)
+                            Text(groupName.isEmpty ? "Sem grupo" : groupName)
+                                .font(.system(size: 10, weight: .bold))
+                                .textCase(.uppercase)
+                                .tracking(0.8)
+                                .foregroundColor(ExTokens.Colors.textSecondary)
+
+                            Spacer()
+
+                            // Project count badge
+                            Text("\(groupProjects.count)")
+                                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                                .foregroundColor(ExTokens.Colors.accentPrimary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(ExTokens.Colors.accentPrimary.opacity(0.1))
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                        }
+                        .padding(.horizontal, ExTokens.Spacing.popoverPadding)
+                        .padding(.vertical, 6)
+                        .contentShape(Rectangle())
                     }
-                    .foregroundColor(ExTokens.Colors.textMuted)
-                    .padding(.horizontal, ExTokens.Spacing.popoverPadding)
-                    .padding(.top, ExTokens.Spacing._8)
+                    .buttonStyle(HoverableButtonStyle())
 
                     // Project rows
-                    ForEach(groupProjects) { project in
-                        popoverProjectRow(project)
+                    if !isCollapsed {
+                        VStack(spacing: 3) {
+                            ForEach(groupProjects) { project in
+                                popoverProjectRow(project)
+                            }
+                        }
+                        .padding(.bottom, ExTokens.Spacing._4)
                     }
                 }
             }
@@ -230,7 +263,6 @@ struct PopoverContentView: View {
                     .fill(ExTokens.Colors.borderDefault)
                     .frame(height: 1)
                     .padding(.horizontal, ExTokens.Spacing.popoverPadding)
-                    .padding(.top, ExTokens.Spacing._8)
 
                 ProjectUsageSection(
                     perProjectTokens: appViewModel.usageViewModel.perProjectTokens,
@@ -240,19 +272,33 @@ struct PopoverContentView: View {
                 .padding(.horizontal, ExTokens.Spacing.popoverPadding)
             }
         }
+        .padding(.top, ExTokens.Spacing._4)
         .padding(.bottom, ExTokens.Spacing._12)
     }
 
     private func popoverProjectRow(_ project: Project) -> some View {
         HStack(spacing: 8) {
+            // Color dot with subtle glow
             Circle()
                 .fill(Color(hex: project.colorHex))
                 .frame(width: 8, height: 8)
+                .shadow(color: Color(hex: project.colorHex).opacity(0.4), radius: 3)
 
-            Text(project.name)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(ExTokens.Colors.textPrimary)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(project.name)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(ExTokens.Colors.textPrimary)
+                    .lineLimit(1)
+
+                // Show path on large+ sizes
+                if popoverSize == .large || popoverSize == .extraLarge {
+                    Text(project.path)
+                        .font(.system(size: 7, design: .monospaced))
+                        .foregroundColor(ExTokens.Colors.textMuted)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
 
             Spacer()
 
@@ -267,10 +313,10 @@ struct PopoverContentView: View {
             // Model badge
             Text(project.selectedModel.shortName)
                 .font(.system(size: 8, weight: .bold))
-                .foregroundColor(ExTokens.Colors.accentPrimary)
+                .foregroundColor(project.selectedModel.badgeColor)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 2)
-                .background(ExTokens.Colors.accentPrimary.opacity(0.1))
+                .background(project.selectedModel.badgeColor.opacity(0.1))
                 .clipShape(RoundedRectangle(cornerRadius: 3))
 
             // Launch button
@@ -290,7 +336,7 @@ struct PopoverContentView: View {
             .buttonStyle(HoverableButtonStyle())
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 5)
+        .padding(.vertical, 6)
         .background(ExTokens.Colors.backgroundCard)
         .overlay(
             RoundedRectangle(cornerRadius: ExTokens.Radius.sm)
@@ -316,93 +362,109 @@ struct PopoverContentView: View {
             InsightsSection()
                 .padding(.top, ExTokens.Spacing._4)
 
-            // Model Distribution (moved from dashboard for insights focus)
+            // Model Distribution
             if !sortedModelUsage.isEmpty {
-                VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
-                    Text("MODEL DISTRIBUTION (7D)")
-                        .font(ExTokens.Typography.label)
-                        .tracking(1.5)
-                        .foregroundColor(ExTokens.Colors.textMuted)
-
+                insightsCard(title: "MODEL DISTRIBUTION (7D)", icon: "circle.grid.3x3.fill") {
                     ModelDistributionBar(models: sortedModelUsage)
                 }
-                .padding(.horizontal, ExTokens.Spacing.popoverPadding)
             }
 
-            // Weekly Projection
-            if !appViewModel.usageViewModel.weeklyProjection.isEmpty {
-                VStack(alignment: .leading, spacing: ExTokens.Spacing._6) {
-                    Text("PROJEÇÃO SEMANAL")
-                        .font(ExTokens.Typography.label)
-                        .tracking(1.5)
-                        .foregroundColor(ExTokens.Colors.textMuted)
+            // Weekly Projection + Burn Rate combined
+            if !appViewModel.usageViewModel.weeklyProjection.isEmpty || appViewModel.usageViewModel.burnRatePerHour > 0 {
+                insightsCard(title: "PROJEÇÃO & BURN RATE", icon: "gauge.with.dots.needle.67percent") {
+                    VStack(spacing: ExTokens.Spacing._8) {
+                        // Projection banner
+                        if !appViewModel.usageViewModel.weeklyProjection.isEmpty {
+                            let isWarning = appViewModel.usageViewModel.projectionIsWarning
+                            let color = isWarning ? ExTokens.Colors.statusWarning : ExTokens.Colors.statusSuccess
 
-                    HStack(spacing: 6) {
-                        Image(systemName: appViewModel.usageViewModel.projectionIsWarning ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
-                            .font(.system(size: 11))
+                            HStack(spacing: 8) {
+                                Image(systemName: isWarning ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(color)
+                                    .frame(width: 24, height: 24)
+                                    .background(color.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 5))
 
-                        Text(appViewModel.usageViewModel.weeklyProjection)
-                            .font(.system(size: 11, weight: .medium))
-                    }
-                    .foregroundColor(
-                        appViewModel.usageViewModel.projectionIsWarning
-                            ? ExTokens.Colors.statusWarning
-                            : ExTokens.Colors.statusSuccess
-                    )
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        (appViewModel.usageViewModel.projectionIsWarning
-                            ? ExTokens.Colors.statusWarning
-                            : ExTokens.Colors.statusSuccess
-                        ).opacity(0.08)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.md))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: ExTokens.Radius.md)
-                            .stroke(
-                                (appViewModel.usageViewModel.projectionIsWarning
-                                    ? ExTokens.Colors.statusWarning
-                                    : ExTokens.Colors.statusSuccess
-                                ).opacity(0.2),
-                                lineWidth: 1
+                                Text(appViewModel.usageViewModel.weeklyProjection)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(color)
+
+                                Spacer()
+                            }
+                            .padding(8)
+                            .background(color.opacity(0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: ExTokens.Radius.sm)
+                                    .stroke(color.opacity(0.15), lineWidth: 1)
                             )
-                    )
-                }
-                .padding(.horizontal, ExTokens.Spacing.popoverPadding)
-            }
+                        }
 
-            // Burn Rate
-            if appViewModel.usageViewModel.burnRatePerHour > 0 {
-                VStack(alignment: .leading, spacing: ExTokens.Spacing._6) {
-                    Text("BURN RATE")
-                        .font(ExTokens.Typography.label)
-                        .tracking(1.5)
-                        .foregroundColor(ExTokens.Colors.textMuted)
-
-                    HStack(spacing: 12) {
-                        burnRateStat(label: "POR HORA", value: String(format: "%.2f%%", appViewModel.usageViewModel.burnRatePerHour * 100))
-                        burnRateStat(label: "POR DIA", value: String(format: "%.1f%%", appViewModel.usageViewModel.burnRatePerHour * 24 * 100))
+                        // Burn rate stats
+                        if appViewModel.usageViewModel.burnRatePerHour > 0 {
+                            HStack(spacing: 10) {
+                                burnRateStat(
+                                    label: "POR HORA",
+                                    value: String(format: "%.2f%%", appViewModel.usageViewModel.burnRatePerHour * 100),
+                                    icon: "clock"
+                                )
+                                burnRateStat(
+                                    label: "POR DIA",
+                                    value: String(format: "%.1f%%", appViewModel.usageViewModel.burnRatePerHour * 24 * 100),
+                                    icon: "calendar"
+                                )
+                            }
+                        }
                     }
                 }
-                .padding(.horizontal, ExTokens.Spacing.popoverPadding)
             }
         }
         .padding(.bottom, ExTokens.Spacing._12)
     }
 
-    private func burnRateStat(label: String, value: String) -> some View {
-        VStack(spacing: 3) {
+    private func insightsCard<Content: View>(title: String, icon: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 8))
+                    .foregroundColor(ExTokens.Colors.accentPrimary.opacity(0.6))
+                Text(title)
+                    .font(ExTokens.Typography.label)
+                    .tracking(1.5)
+                    .foregroundColor(ExTokens.Colors.textMuted)
+            }
+
+            content()
+        }
+        .padding(12)
+        .background(ExTokens.Colors.backgroundCard)
+        .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.lg))
+        .overlay(
+            RoundedRectangle(cornerRadius: ExTokens.Radius.lg)
+                .stroke(ExTokens.Colors.borderDefault, lineWidth: 1)
+        )
+        .padding(.horizontal, ExTokens.Spacing.popoverPadding)
+    }
+
+    private func burnRateStat(label: String, value: String, icon: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 9))
+                .foregroundColor(ExTokens.Colors.accentPrimary.opacity(0.5))
+
             Text(value)
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .font(.system(size: 13, weight: .bold, design: .monospaced))
                 .foregroundColor(ExTokens.Colors.textPrimary)
+
             Text(label)
-                .font(.system(size: 7, weight: .medium))
+                .font(.system(size: 7, weight: .bold))
                 .foregroundColor(ExTokens.Colors.textMuted)
+                .tracking(0.5)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .background(ExTokens.Colors.backgroundCard)
+        .padding(.vertical, 10)
+        .background(ExTokens.Colors.backgroundElevated)
         .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.md))
         .overlay(
             RoundedRectangle(cornerRadius: ExTokens.Radius.md)
