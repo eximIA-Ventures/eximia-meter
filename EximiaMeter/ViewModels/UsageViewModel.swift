@@ -39,6 +39,10 @@ class UsageViewModel {
 
     var usageSource: UsageSource = .estimated
 
+    var weeklyProjection: String = ""
+    var burnRatePerHour: Double = 0.0
+    var projectionIsWarning: Bool = false
+
     var lastUpdated: Date = Date()
 
     var usageSourceLabel: String {
@@ -89,6 +93,9 @@ class UsageViewModel {
         dailyModelTokens = usageData.dailyModelTokens
         hourCounts = usageData.hourCounts
         usageSource = usageData.usageSource
+        weeklyProjection = usageData.weeklyProjection
+        burnRatePerHour = usageData.burnRatePerHour
+        projectionIsWarning = usageData.projectionIsWarning
         lastUpdated = usageData.lastUpdated
     }
 }

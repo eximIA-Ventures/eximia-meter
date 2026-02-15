@@ -11,7 +11,20 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     private var lastNotifiedAt: [String: Date] = [:]
     private var permissionGranted = false
 
-    private let cooldownInterval: TimeInterval = 300 // 5 minutes
+    /// Base cooldown (5 min) — after first fire, escalates to extended cooldown
+    private let baseCooldown: TimeInterval = 300
+    /// Extended cooldown (4 hours) — used while usage stays above threshold
+    private let extendedCooldown: TimeInterval = 14400
+    /// Hysteresis margin — usage must drop 5% below threshold to re-enable
+    private let hysteresisMargin: Double = 0.05
+
+    /// Track previous weekly usage to detect reset
+    private var lastKnownWeeklyUsage: Double = 0.0
+
+    // Persistence keys
+    private let kNotifiedThresholds = "ExNotificationService.notifiedThresholds"
+    private let kLastNotifiedAt = "ExNotificationService.lastNotifiedAt"
+    private let kLastKnownWeeklyUsage = "ExNotificationService.lastKnownWeeklyUsage"
 
     // Settings — updated from AppViewModel before each check
     var soundEnabled: Bool = true
@@ -24,6 +37,9 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         // Always set delegate immediately so foreground notifications work
         let center = UNUserNotificationCenter.current()
         center.delegate = self
+
+        // Restore persisted state
+        loadPersistedState()
     }
 
     func requestPermission() {
@@ -83,7 +99,10 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     // MARK: - Check & Notify
 
     func checkAndNotify(usageData: UsageData, thresholds: ThresholdConfig) {
-        // Smart reset: if usage drops below threshold, allow re-notification
+        // Detect weekly reset: if usage dropped by more than 50%, clear all weekly flags
+        detectWeeklyReset(currentWeeklyUsage: usageData.weeklyUsage)
+
+        // Smart reset with hysteresis: only clear flag when usage drops 5% below threshold
         resetIfBelow(id: "session-warning", value: usageData.sessionUsage, threshold: thresholds.sessionWarning)
         resetIfBelow(id: "session-critical", value: usageData.sessionUsage, threshold: thresholds.sessionCritical)
         resetIfBelow(id: "weekly-warning", value: usageData.weeklyUsage, threshold: thresholds.weeklyWarning)
@@ -129,6 +148,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     func resetNotifications() {
         notifiedThresholds.removeAll()
         lastNotifiedAt.removeAll()
+        persistState()
     }
 
     /// Send a test system notification (for preview from Settings)
@@ -178,23 +198,44 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
     // MARK: - Private
 
+    /// Only reset notification flag when usage drops MORE than hysteresis margin below threshold
     private func resetIfBelow(id: String, value: Double, threshold: Double) {
-        if value < threshold {
-            notifiedThresholds.remove(id)
+        if value < (threshold - hysteresisMargin) {
+            if notifiedThresholds.contains(id) {
+                notifiedThresholds.remove(id)
+                lastNotifiedAt.removeValue(forKey: id)
+                persistState()
+            }
         }
+    }
+
+    /// Detect weekly reset: if weeklyUsage dropped by >50%, clear all weekly notification flags
+    private func detectWeeklyReset(currentWeeklyUsage: Double) {
+        if lastKnownWeeklyUsage > 0.3 && currentWeeklyUsage < lastKnownWeeklyUsage * 0.5 {
+            print("[Notifications] weekly reset detected (\(Int(lastKnownWeeklyUsage * 100))% → \(Int(currentWeeklyUsage * 100))%), clearing weekly flags")
+            notifiedThresholds.remove("weekly-warning")
+            notifiedThresholds.remove("weekly-critical")
+            lastNotifiedAt.removeValue(forKey: "weekly-warning")
+            lastNotifiedAt.removeValue(forKey: "weekly-critical")
+            persistState()
+        }
+        lastKnownWeeklyUsage = currentWeeklyUsage
+        UserDefaults.standard.set(currentWeeklyUsage, forKey: kLastKnownWeeklyUsage)
     }
 
     private func checkThreshold(id: String, value: Double, threshold: Double, title: String, body: String, severity: String) {
         guard value >= threshold else { return }
         guard !notifiedThresholds.contains(id) else { return }
 
-        // Cooldown: don't re-fire the same alert within 5 minutes
-        if let lastFired = lastNotifiedAt[id], Date().timeIntervalSince(lastFired) < cooldownInterval {
+        // Adaptive cooldown: use extended cooldown if this alert was already fired before
+        let cooldown = lastNotifiedAt[id] != nil ? extendedCooldown : baseCooldown
+        if let lastFired = lastNotifiedAt[id], Date().timeIntervalSince(lastFired) < cooldown {
             return
         }
 
         notifiedThresholds.insert(id)
         lastNotifiedAt[id] = Date()
+        persistState()
 
         // macOS system notification (Notification Center banner)
         if systemNotificationsEnabled {
@@ -230,5 +271,27 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
                 )
             }
         }
+    }
+
+    // MARK: - Persistence
+
+    private func persistState() {
+        UserDefaults.standard.set(Array(notifiedThresholds), forKey: kNotifiedThresholds)
+
+        // Convert [String: Date] → [String: Double] for UserDefaults
+        let intervals = lastNotifiedAt.mapValues { $0.timeIntervalSince1970 }
+        UserDefaults.standard.set(intervals, forKey: kLastNotifiedAt)
+    }
+
+    private func loadPersistedState() {
+        if let saved = UserDefaults.standard.stringArray(forKey: kNotifiedThresholds) {
+            notifiedThresholds = Set(saved)
+        }
+
+        if let saved = UserDefaults.standard.dictionary(forKey: kLastNotifiedAt) as? [String: Double] {
+            lastNotifiedAt = saved.mapValues { Date(timeIntervalSince1970: $0) }
+        }
+
+        lastKnownWeeklyUsage = UserDefaults.standard.double(forKey: kLastKnownWeeklyUsage)
     }
 }

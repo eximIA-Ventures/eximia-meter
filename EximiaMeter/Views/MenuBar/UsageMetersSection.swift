@@ -39,6 +39,18 @@ struct UsageMetersSection: View {
                 criticalThreshold: thresholds.weeklyCritical
             )
 
+            // ─── Weekly Projection ────────────────────────────
+            if !usage.weeklyProjection.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: usage.projectionIsWarning ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
+                        .font(.system(size: 8))
+                    Text(usage.weeklyProjection)
+                        .font(ExTokens.Typography.micro)
+                }
+                .foregroundColor(usage.projectionIsWarning ? ExTokens.Colors.statusWarning : ExTokens.Colors.statusSuccess)
+                .padding(.top, -8)
+            }
+
             // ─── Model Distribution ─────────────────────────
             if !sortedModelUsage.isEmpty {
                 Text("MODEL DISTRIBUTION (7D)")

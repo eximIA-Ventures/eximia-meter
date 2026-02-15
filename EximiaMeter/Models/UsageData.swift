@@ -54,6 +54,50 @@ struct UsageData {
         formatTimeInterval(sessionResetTimeRemaining)
     }
 
+    // MARK: - Burn Rate / Projection
+
+    /// Total week duration (7 days in seconds)
+    private var totalWeekDuration: TimeInterval { 7 * 86400 }
+
+    /// Time elapsed since the start of the current week
+    var weeklyTimeElapsed: TimeInterval {
+        totalWeekDuration - weeklyResetTimeRemaining
+    }
+
+    /// Consumption rate per hour (requires at least 1h of data)
+    var burnRatePerHour: Double {
+        guard weeklyTimeElapsed > 3600 else { return 0 }
+        return weeklyUsage / (weeklyTimeElapsed / 3600)
+    }
+
+    /// Formatted projection for the UI
+    var weeklyProjection: String {
+        if weeklyUsage >= 1.0 {
+            return "Limite atingido. Reseta em \(weeklyResetFormatted)"
+        }
+        if weeklyUsage == 0 || burnRatePerHour == 0 {
+            return ""
+        }
+
+        let hoursToLimit = (1.0 - weeklyUsage) / burnRatePerHour
+        let secondsToLimit = hoursToLimit * 3600
+
+        if secondsToLimit < weeklyResetTimeRemaining {
+            return "Limite em ~\(formatTimeInterval(secondsToLimit))"
+        } else {
+            let projectedAtReset = weeklyUsage + (burnRatePerHour * (weeklyResetTimeRemaining / 3600))
+            let freePercent = Int((1.0 - min(projectedAtReset, 1.0)) * 100)
+            return "No reset, terá \(freePercent)% livre"
+        }
+    }
+
+    /// True if projected to hit limit before weekly reset
+    var projectionIsWarning: Bool {
+        guard burnRatePerHour > 0, weeklyUsage < 1.0 else { return weeklyUsage >= 1.0 }
+        let hoursToLimit = (1.0 - weeklyUsage) / burnRatePerHour
+        return (hoursToLimit * 3600) < weeklyResetTimeRemaining
+    }
+
     private func formatTimeInterval(_ interval: TimeInterval) -> String {
         guard interval > 0 else { return "now" }
 

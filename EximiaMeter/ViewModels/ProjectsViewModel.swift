@@ -1,29 +1,35 @@
 import SwiftUI
+import UserNotifications
 
 @Observable
 class ProjectsViewModel {
     var projects: [Project] = []
+    var pendingRenames: [PendingRename] = []
 
     private let store = ProjectStore()
+    private let kPendingRenames = "ExProjects.pendingRenames"
+
+    struct PendingRename: Identifiable, Codable {
+        let id: UUID
+        let projectId: UUID
+        let oldPath: String
+        let newPath: String
+        let newName: String
+
+        init(projectId: UUID, oldPath: String, newPath: String, newName: String) {
+            self.id = UUID()
+            self.projectId = projectId
+            self.oldPath = oldPath
+            self.newPath = newPath
+            self.newName = newName
+        }
+    }
 
     func load() {
         projects = store.loadProjects()
-        pruneInvalidProjects()
+        loadPendingRenames()
+        detectRenamesAndPrune()
         refreshAIOSStatus()
-    }
-
-    /// Remove projects whose path no longer exists on disk
-    private func pruneInvalidProjects() {
-        let fm = FileManager.default
-        let before = projects.count
-        projects.removeAll { project in
-            !fm.fileExists(atPath: project.path)
-        }
-        if projects.count != before {
-            reindex()
-            save()
-            print("[Projects] pruned \(before - projects.count) project(s) with invalid paths")
-        }
     }
 
     /// Returns projects discovered in ~/.claude/projects/ that are NOT already in the user's list
@@ -60,8 +66,10 @@ class ProjectsViewModel {
 
     func removeProject(_ project: Project) {
         projects.removeAll { $0.id == project.id }
+        pendingRenames.removeAll { $0.projectId == project.id }
         reindex()
         save()
+        savePendingRenames()
     }
 
     func moveProject(from source: IndexSet, to destination: Int) {
@@ -108,6 +116,172 @@ class ProjectsViewModel {
         }
         if changed {
             save()
+        }
+    }
+
+    // MARK: - Rename Detection
+
+    /// Accept a pending rename: update the project's path and name
+    func acceptRename(_ rename: PendingRename) {
+        if let index = projects.firstIndex(where: { $0.id == rename.projectId }) {
+            projects[index].path = rename.newPath
+            projects[index].name = rename.newName
+            save()
+        }
+        pendingRenames.removeAll { $0.id == rename.id }
+        savePendingRenames()
+    }
+
+    /// Dismiss a pending rename: remove the project (prune)
+    func dismissRename(_ rename: PendingRename) {
+        projects.removeAll { $0.id == rename.projectId }
+        pendingRenames.removeAll { $0.id == rename.id }
+        reindex()
+        save()
+        savePendingRenames()
+    }
+
+    /// Detect renamed directories and prune truly deleted ones
+    private func detectRenamesAndPrune() {
+        let fm = FileManager.default
+        var newRenames: [PendingRename] = []
+        var toPrune: [UUID] = []
+
+        for project in projects {
+            guard !fm.fileExists(atPath: project.path) else { continue }
+
+            // Already has a pending rename? Skip
+            if pendingRenames.contains(where: { $0.projectId == project.id }) {
+                continue
+            }
+
+            // Check sibling directories in the parent folder
+            let parentURL = URL(fileURLWithPath: project.path).deletingLastPathComponent()
+            let oldName = URL(fileURLWithPath: project.path).lastPathComponent
+
+            if let candidate = findBestRenameCandidate(in: parentURL, oldName: oldName, fm: fm) {
+                newRenames.append(PendingRename(
+                    projectId: project.id,
+                    oldPath: project.path,
+                    newPath: candidate.path,
+                    newName: candidate.lastPathComponent
+                ))
+            } else {
+                toPrune.append(project.id)
+            }
+        }
+
+        // Prune projects with no rename candidate
+        if !toPrune.isEmpty {
+            let before = projects.count
+            projects.removeAll { toPrune.contains($0.id) }
+            reindex()
+            save()
+            print("[Projects] pruned \(before - projects.count) project(s) with invalid paths")
+        }
+
+        // Add new renames
+        if !newRenames.isEmpty {
+            pendingRenames.append(contentsOf: newRenames)
+            savePendingRenames()
+            print("[Projects] detected \(newRenames.count) possible rename(s)")
+
+            // Send macOS notification
+            sendRenameNotification(count: newRenames.count)
+        }
+
+        // Clean up renames whose project no longer exists
+        let projectIds = Set(projects.map(\.id))
+        let beforeRenames = pendingRenames.count
+        pendingRenames.removeAll { !projectIds.contains($0.projectId) }
+        if pendingRenames.count != beforeRenames {
+            savePendingRenames()
+        }
+    }
+
+    /// Find best rename candidate in sibling directories using string similarity
+    private func findBestRenameCandidate(in parentURL: URL, oldName: String, fm: FileManager) -> URL? {
+        guard let siblings = try? fm.contentsOfDirectory(at: parentURL, includingPropertiesForKeys: [.isDirectoryKey]) else {
+            return nil
+        }
+
+        var bestCandidate: URL?
+        var bestScore: Double = 0
+
+        for sibling in siblings {
+            guard let isDir = try? sibling.resourceValues(forKeys: [.isDirectoryKey]).isDirectory, isDir else { continue }
+            let siblingName = sibling.lastPathComponent
+            if siblingName == oldName { continue }
+
+            let score = stringSimilarity(oldName, siblingName)
+            if score > 0.6 && score > bestScore {
+                bestScore = score
+                bestCandidate = sibling
+            }
+        }
+
+        return bestCandidate
+    }
+
+    /// Simple string similarity based on longest common subsequence ratio
+    private func stringSimilarity(_ a: String, _ b: String) -> Double {
+        let aLower = a.lowercased()
+        let bLower = b.lowercased()
+
+        // Check common prefix ratio
+        let commonPrefix = aLower.commonPrefix(with: bLower)
+        let prefixRatio = Double(commonPrefix.count) / Double(max(aLower.count, bLower.count))
+        if prefixRatio > 0.6 { return prefixRatio }
+
+        // LCS-based similarity
+        let aArr = Array(aLower)
+        let bArr = Array(bLower)
+        let m = aArr.count
+        let n = bArr.count
+        guard m > 0, n > 0 else { return 0 }
+
+        var dp = Array(repeating: Array(repeating: 0, count: n + 1), count: m + 1)
+        for i in 1...m {
+            for j in 1...n {
+                if aArr[i - 1] == bArr[j - 1] {
+                    dp[i][j] = dp[i - 1][j - 1] + 1
+                } else {
+                    dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+                }
+            }
+        }
+
+        return Double(dp[m][n]) / Double(max(m, n))
+    }
+
+    private func sendRenameNotification(count: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = "exímIA Meter"
+        content.body = count == 1
+            ? "Um projeto parece ter sido renomeado. Verifique em Settings → Projects."
+            : "\(count) projetos parecem ter sido renomeados. Verifique em Settings → Projects."
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "project-rename-\(Int(Date().timeIntervalSince1970))",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    // MARK: - Persistence
+
+    private func savePendingRenames() {
+        if let data = try? JSONEncoder().encode(pendingRenames) {
+            UserDefaults.standard.set(data, forKey: kPendingRenames)
+        }
+    }
+
+    private func loadPendingRenames() {
+        if let data = UserDefaults.standard.data(forKey: kPendingRenames),
+           let saved = try? JSONDecoder().decode([PendingRename].self, from: data) {
+            pendingRenames = saved
         }
     }
 

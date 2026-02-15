@@ -46,6 +46,21 @@ struct ProjectsTabView: View {
                 .frame(height: 1)
                 .padding(.horizontal, ExTokens.Spacing._16)
 
+            // Rename banners
+            if !projects.pendingRenames.isEmpty {
+                VStack(spacing: ExTokens.Spacing._6) {
+                    ForEach(projects.pendingRenames) { rename in
+                        RenameBanner(rename: rename, onAccept: {
+                            projects.acceptRename(rename)
+                        }, onDismiss: {
+                            projects.dismissRename(rename)
+                        })
+                    }
+                }
+                .padding(.horizontal, ExTokens.Spacing._16)
+                .padding(.top, ExTokens.Spacing._8)
+            }
+
             // Project List
             if projects.projects.isEmpty {
                 VStack(spacing: 8) {
@@ -270,6 +285,8 @@ struct ProjectSettingsRow: View {
 
     @State private var selectedModel: ClaudeModel
     @State private var isHovered = false
+    @State private var isUpdatingAIOS = false
+    @State private var aiosUpdateResult: Bool? = nil
 
     init(index: Int, project: Project, isVisible: Bool, onToggleVisibility: @escaping () -> Void, onModelChange: @escaping (ClaudeModel) -> Void, onRemove: @escaping () -> Void) {
         self.index = index
@@ -331,6 +348,34 @@ struct ProjectSettingsRow: View {
                     onModelChange(newValue)
                 }
 
+            // AIOS update button (only for AIOS projects)
+            if project.isAIOSProject {
+                Button {
+                    updateAIOS()
+                } label: {
+                    Group {
+                        if isUpdatingAIOS {
+                            ProgressView()
+                                .controlSize(.small)
+                                .scaleEffect(0.6)
+                        } else if let result = aiosUpdateResult {
+                            Image(systemName: result ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(result ? ExTokens.Colors.statusSuccess : ExTokens.Colors.statusCritical)
+                        } else {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.system(size: 11))
+                                .foregroundColor(ExTokens.Colors.accentPrimary)
+                        }
+                    }
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(HoverableButtonStyle())
+                .disabled(isUpdatingAIOS)
+                .help("Update AIOS (npx aios-core@latest install)")
+            }
+
             // Remove button
             Button(action: onRemove) {
                 Image(systemName: "xmark.circle.fill")
@@ -359,5 +404,112 @@ struct ProjectSettingsRow: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.md))
         .animation(.easeInOut(duration: 0.15), value: isVisible)
+    }
+
+    private func updateAIOS() {
+        isUpdatingAIOS = true
+        aiosUpdateResult = nil
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+            process.arguments = ["npx", "aios-core@latest", "install"]
+            process.currentDirectoryURL = URL(fileURLWithPath: project.path)
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+
+            var success = false
+            do {
+                try process.run()
+                process.waitUntilExit()
+                success = process.terminationStatus == 0
+            } catch {
+                print("[AIOS] update failed for \(project.name): \(error)")
+            }
+
+            DispatchQueue.main.async {
+                isUpdatingAIOS = false
+                aiosUpdateResult = success
+
+                // Clear result after 3 seconds
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    aiosUpdateResult = nil
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Rename Banner
+
+struct RenameBanner: View {
+    let rename: ProjectsViewModel.PendingRename
+    var onAccept: () -> Void
+    var onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: ExTokens.Spacing._6) {
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(ExTokens.Colors.statusWarning)
+
+                Text("\"\(URL(fileURLWithPath: rename.oldPath).lastPathComponent)\" parece ter sido renomeado para \"\(rename.newName)\"")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(ExTokens.Colors.textPrimary)
+                    .lineLimit(2)
+
+                Spacer()
+            }
+
+            Text("\(rename.oldPath) → \(rename.newPath)")
+                .font(.system(size: 8, design: .monospaced))
+                .foregroundColor(ExTokens.Colors.textMuted)
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            HStack(spacing: 8) {
+                Button {
+                    withAnimation { onAccept() }
+                } label: {
+                    HStack(spacing: 3) {
+                        Image(systemName: "arrow.right.circle.fill")
+                            .font(.system(size: 9))
+                        Text("Atualizar")
+                            .font(.system(size: 9, weight: .bold))
+                    }
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(ExTokens.Colors.accentPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                }
+                .buttonStyle(HoverableButtonStyle())
+
+                Button {
+                    withAnimation { onDismiss() }
+                } label: {
+                    Text("Ignorar")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(ExTokens.Colors.textMuted)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(ExTokens.Colors.backgroundElevated)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: ExTokens.Radius.sm)
+                                .stroke(ExTokens.Colors.borderDefault, lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                }
+                .buttonStyle(HoverableButtonStyle())
+            }
+        }
+        .padding(ExTokens.Spacing._12)
+        .background(ExTokens.Colors.statusWarning.opacity(0.08))
+        .overlay(
+            RoundedRectangle(cornerRadius: ExTokens.Radius.md)
+                .stroke(ExTokens.Colors.statusWarning.opacity(0.3), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.md))
     }
 }

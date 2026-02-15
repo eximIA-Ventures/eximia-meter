@@ -179,6 +179,17 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v1.7.0", items: [
+                                "Fix: notificações não re-disparam quando idle em 100% (persistência + histerese 5%)",
+                                "Projeção de uso: burn rate mostra quando vai atingir o limite semanal",
+                                "Botão AIOS: atualizar aios-core diretamente da lista de projetos",
+                                "Detecção de renomeação: projetos renomeados são detectados automaticamente"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v1.6.0", items: [
                                 "Update banner on home page when new version is available",
                                 "Projects: eye toggle hides/shows on main page (with animation)",
