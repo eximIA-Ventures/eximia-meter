@@ -1,5 +1,5 @@
 {
-  "name": "@eximia-ventures/meter",
+  "name": "eximia-meter",
   "version": "1.0.0",
   "type": "module",
   "description": "exímIA Meter — macOS menu bar app for monitoring Claude Code usage",

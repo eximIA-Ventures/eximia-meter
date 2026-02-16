@@ -115,7 +115,7 @@ Claude Code's Pro/Max plans have weekly token limits but no built-in dashboard. 
 ### npm (recommended)
 
 ```bash
-npx @eximia-ventures/meter
+npx eximia-meter
 ```
 
 ### Shell Script
@@ -317,7 +317,7 @@ An update banner also appears on the main popover when a new version is detected
 ### From Terminal
 
 ```bash
-npx @eximia-ventures/meter
+npx eximia-meter
 ```
 
 or
