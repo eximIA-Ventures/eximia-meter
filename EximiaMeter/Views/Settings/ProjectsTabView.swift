@@ -8,6 +8,7 @@ struct ProjectsTabView: View {
     @State private var editGroupText = ""
     @State private var showingNewGroup = false
     @State private var newGroupText = ""
+    @State private var dragOverGroupId = ""  // "" = none, "__ungrouped__" = sem grupo, else = group name
 
     private var projects: ProjectsViewModel {
         appViewModel.projectsViewModel
@@ -89,13 +90,12 @@ struct ProjectsTabView: View {
             } else {
                 List {
                     // Project list
-                    ForEach(projects.projects.indices, id: \.self) { index in
-                        let project = projects.projects[index]
-                        let isVisible = project.showOnMainPage
+                    ForEach(projects.projects) { project in
+                        let index = (projects.projects.firstIndex(where: { $0.id == project.id }) ?? 0) + 1
                         ProjectSettingsRow(
-                            index: index + 1,
+                            index: index,
                             project: project,
-                            isVisible: isVisible,
+                            isVisible: project.showOnMainPage,
                             allGroups: projects.allGroups,
                             onToggleVisibility: {
                                 projects.toggleMainPage(for: project)
@@ -113,6 +113,7 @@ struct ProjectsTabView: View {
                                 projects.removeProject(project)
                             }
                         )
+                        .draggable(project.id.uuidString)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
@@ -123,9 +124,44 @@ struct ProjectsTabView: View {
 
                     // Group Management section
                     Section {
-                        // Existing groups
+                        // "Sem grupo" drop target
+                        groupDropTarget(group: nil, label: "Sem grupo", icon: "folder", color: ExTokens.Colors.textMuted)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
+
+                        // Existing groups as drop targets
                         ForEach(projects.allGroups, id: \.self) { group in
-                            groupManagementRow(group)
+                            groupDropTarget(group: group, label: group, icon: "folder.fill", color: ExTokens.Colors.accentSecondary)
+                                .overlay(alignment: .trailing) {
+                                    HStack(spacing: 4) {
+                                        Button {
+                                            editGroupText = group
+                                            editingGroup = group
+                                        } label: {
+                                            Image(systemName: "pencil")
+                                                .font(.system(size: 10))
+                                                .foregroundColor(ExTokens.Colors.accentPrimary)
+                                                .frame(width: 24, height: 24)
+                                                .contentShape(Rectangle())
+                                        }
+                                        .buttonStyle(HoverableButtonStyle())
+                                        .help("Renomear grupo")
+
+                                        Button {
+                                            projects.deleteGroup(group)
+                                        } label: {
+                                            Image(systemName: "trash")
+                                                .font(.system(size: 10))
+                                                .foregroundColor(ExTokens.Colors.statusCritical)
+                                                .frame(width: 24, height: 24)
+                                                .contentShape(Rectangle())
+                                        }
+                                        .buttonStyle(HoverableButtonStyle())
+                                        .help("Remover grupo")
+                                    }
+                                    .padding(.trailing, 10)
+                                }
                                 .listRowBackground(Color.clear)
                                 .listRowSeparator(.hidden)
                                 .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
@@ -209,7 +245,7 @@ struct ProjectsTabView: View {
                             Image(systemName: "folder.badge.gearshape")
                                 .font(.system(size: 10))
                                 .foregroundColor(ExTokens.Colors.accentSecondary)
-                            Text("GERENCIAR GRUPOS")
+                            Text("ARRASTE PROJETOS PARA GRUPOS")
                                 .font(.system(size: 10, weight: .bold))
                                 .tracking(1)
 
@@ -267,18 +303,20 @@ struct ProjectsTabView: View {
         showingNewGroup = false
     }
 
-    private func groupManagementRow(_ group: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "folder.fill")
+    private func groupDropTarget(group: String?, label: String, icon: String, color: Color) -> some View {
+        let dropId = group ?? "__ungrouped__"
+        let isOver = dragOverGroupId == dropId
+        let count = projects.projects.filter { $0.group == group }.count
+
+        return HStack(spacing: 8) {
+            Image(systemName: icon)
                 .font(.system(size: 11))
-                .foregroundColor(ExTokens.Colors.accentSecondary)
+                .foregroundColor(isOver ? ExTokens.Colors.accentPrimary : color)
 
-            Text(group)
+            Text(label)
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(ExTokens.Colors.textPrimary)
+                .foregroundColor(isOver ? ExTokens.Colors.accentPrimary : ExTokens.Colors.textPrimary)
 
-            // Count of projects in group
-            let count = projects.projects.filter { $0.group == group }.count
             Text("\(count)")
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
                 .foregroundColor(ExTokens.Colors.textTertiary)
@@ -288,42 +326,29 @@ struct ProjectsTabView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 3))
 
             Spacer()
-
-            // Rename
-            Button {
-                editGroupText = group
-                editingGroup = group
-            } label: {
-                Image(systemName: "pencil")
-                    .font(.system(size: 10))
-                    .foregroundColor(ExTokens.Colors.accentPrimary)
-                    .frame(width: 24, height: 24)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(HoverableButtonStyle())
-            .help("Renomear grupo")
-
-            // Delete
-            Button {
-                projects.deleteGroup(group)
-            } label: {
-                Image(systemName: "trash")
-                    .font(.system(size: 10))
-                    .foregroundColor(ExTokens.Colors.statusCritical)
-                    .frame(width: 24, height: 24)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(HoverableButtonStyle())
-            .help("Remover grupo (projetos voltam para 'Sem grupo')")
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(ExTokens.Colors.backgroundCard)
+        .padding(.vertical, 8)
+        .background(isOver ? ExTokens.Colors.accentPrimary.opacity(0.1) : ExTokens.Colors.backgroundCard)
         .overlay(
             RoundedRectangle(cornerRadius: ExTokens.Radius.md)
-                .stroke(ExTokens.Colors.borderDefault, lineWidth: 1)
+                .stroke(
+                    isOver ? ExTokens.Colors.accentPrimary : ExTokens.Colors.borderDefault,
+                    lineWidth: isOver ? 2 : 1
+                )
         )
         .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.md))
+        .dropDestination(for: String.self) { items, _ in
+            guard let idString = items.first, let projectId = UUID(uuidString: idString) else { return false }
+            withAnimation(.easeInOut(duration: 0.2)) {
+                projects.updateGroup(forId: projectId, group: group)
+            }
+            return true
+        } isTargeted: { targeted in
+            withAnimation(.easeInOut(duration: 0.15)) {
+                dragOverGroupId = targeted ? dropId : ""
+            }
+        }
     }
 
     private func actionButton(icon: String, label: String, action: @escaping () -> Void) -> some View {

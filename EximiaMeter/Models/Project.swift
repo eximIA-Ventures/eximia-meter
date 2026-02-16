@@ -50,7 +50,5 @@ struct Project: Identifiable, Codable, Equatable {
         path.replacingOccurrences(of: "/", with: "-")
     }
 
-    static func == (lhs: Project, rhs: Project) -> Bool {
-        lhs.id == rhs.id
-    }
+    // Equatable auto-synthesized from all properties so SwiftUI detects field changes
 }

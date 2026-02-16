@@ -114,6 +114,12 @@ class ProjectsViewModel {
         save()
     }
 
+    func updateGroup(forId projectId: UUID, group: String?) {
+        guard let index = projects.firstIndex(where: { $0.id == projectId }) else { return }
+        projects[index].group = group
+        save()
+    }
+
     /// All unique group names across projects
     var allGroups: [String] {
         Array(Set(projects.compactMap(\.group))).sorted()
