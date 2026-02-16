@@ -106,13 +106,41 @@ class AppViewModel: ObservableObject {
             // Wait for API (max 10s, then proceed with local data)
             _ = apiGroup.wait(timeout: .now() + 10)
 
-            // Calculate with 3-layer hybrid
+            // Calibration: save snapshot on API success, load on failure
+            var calibrationData: UsageCalculatorService.CalibrationData?
+
+            if let api = apiUsage {
+                // API available — save calibration snapshot for future use
+                let snapshot = CalibrationStore.Snapshot(
+                    timestamp: Date(),
+                    apiWeeklyPercent: api.weeklyUtilization,
+                    apiSessionPercent: api.sessionUtilization,
+                    apiWeeklyResetsAt: api.weeklyResetsAt,
+                    apiSessionResetsAt: api.sessionResetsAt,
+                    localWeeklyTokens: exactWeekly,
+                    localSessionTokens: exactSession ?? 0
+                )
+                CalibrationStore.save(snapshot)
+            } else {
+                // API unavailable — try calibrated limits
+                let calWeekly = CalibrationStore.effectiveWeeklyLimit(fallback: limits.weeklyTokenLimit)
+                let calSession = CalibrationStore.effectiveSessionLimit(fallback: limits.sessionTokenLimit)
+                if calWeekly != nil || calSession != nil {
+                    calibrationData = UsageCalculatorService.CalibrationData(
+                        effectiveWeeklyLimit: calWeekly,
+                        effectiveSessionLimit: calSession
+                    )
+                }
+            }
+
+            // Calculate with 3-layer hybrid + calibration
             var usageData = UsageCalculatorService.calculate(
                 from: statsCache,
                 limits: limits,
                 historyEntries: historyEntries,
                 apiUsage: apiUsage,
-                exactTokens: exactTokens
+                exactTokens: exactTokens,
+                calibration: calibrationData
             )
 
             usageData.perProjectTokens = perProject

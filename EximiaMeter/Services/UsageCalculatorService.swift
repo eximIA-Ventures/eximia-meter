@@ -23,12 +23,19 @@ struct UsageCalculatorService {
         let sessionTokens: Int?
     }
 
+    /// Calibration data derived from saved API↔local token ratios
+    struct CalibrationData {
+        let effectiveWeeklyLimit: Int?
+        let effectiveSessionLimit: Int?
+    }
+
     static func calculate(
         from stats: StatsCache?,
         limits: Limits = Limits(),
         historyEntries: [HistoryEntry] = [],
         apiUsage: APIUsageData? = nil,
-        exactTokens: ExactTokenData? = nil
+        exactTokens: ExactTokenData? = nil,
+        calibration: CalibrationData? = nil
     ) -> UsageData {
         var data = UsageData()
         let dateFormatter = DateFormatter()
@@ -78,20 +85,23 @@ struct UsageCalculatorService {
 
             data.usageSource = .api
         } else if let exact = exactTokens, exact.weeklyTokens > 0 {
-            // LAYER 2: .jsonl exact scan
+            // LAYER 2: .jsonl exact scan (with optional calibration)
             data.totalTokensThisWeek = exact.weeklyTokens
-            data.weeklyUsage = limits.weeklyTokenLimit > 0
-                ? min(Double(exact.weeklyTokens) / Double(limits.weeklyTokenLimit), 1.0)
+
+            let weeklyLimit = calibration?.effectiveWeeklyLimit ?? limits.weeklyTokenLimit
+            data.weeklyUsage = weeklyLimit > 0
+                ? min(Double(exact.weeklyTokens) / Double(weeklyLimit), 1.0)
                 : 0.0
 
             if let sessionTokens = exact.sessionTokens, sessionTokens > 0 {
                 data.totalTokensThisSession = sessionTokens
-                data.sessionUsage = limits.sessionTokenLimit > 0
-                    ? min(Double(sessionTokens) / Double(limits.sessionTokenLimit), 1.0)
+                let sessionLimit = calibration?.effectiveSessionLimit ?? limits.sessionTokenLimit
+                data.sessionUsage = sessionLimit > 0
+                    ? min(Double(sessionTokens) / Double(sessionLimit), 1.0)
                     : 0.0
             }
 
-            data.usageSource = .exactLocal
+            data.usageSource = calibration != nil ? .calibratedLocal : .exactLocal
         } else if let stats {
             // LAYER 3: stats-cache × multiplier (fallback)
             let multiplier = cacheMultiplier(from: stats)

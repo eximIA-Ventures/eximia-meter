@@ -70,6 +70,7 @@ class UsageViewModel {
     var usageSourceLabel: String {
         switch usageSource {
         case .api: return "API"
+        case .calibratedLocal: return "Cal."
         case .exactLocal: return "Local"
         case .estimated: return "Est."
         }
