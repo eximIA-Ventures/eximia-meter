@@ -7,6 +7,12 @@ struct ChangelogVersion {
 
 enum Changelog {
     static let entries: [ChangelogVersion] = [
+        ChangelogVersion(version: "v2.6.0", items: [
+            "Admin Mode: ativação por código secreto com hash SHA256",
+            "Canal de atualização: Stable (main) ou Beta (beta) para admins",
+            "Check for Updates e Update Now respeitam o canal selecionado",
+            "Admin Mode persiste entre atualizações (UserDefaults)"
+        ]),
         ChangelogVersion(version: "v2.5.0", items: [
             "Menu Bar: labels S (sessão) e W (semanal) nos indicadores de uso",
             "Custos: baseado na assinatura real, não API pricing. Mostra economia vs API",

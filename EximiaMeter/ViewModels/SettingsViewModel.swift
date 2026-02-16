@@ -1,4 +1,35 @@
 import SwiftUI
+import CryptoKit
+
+// MARK: - Update Channel
+
+enum UpdateChannel: String, CaseIterable, Identifiable {
+    case stable = "Stable"
+    case beta = "Beta"
+
+    var id: String { rawValue }
+
+    var branch: String {
+        switch self {
+        case .stable: return "main"
+        case .beta:   return "beta"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .stable: return "checkmark.shield.fill"
+        case .beta:   return "flask.fill"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .stable: return "Atualizações testadas e estáveis"
+        case .beta:   return "Acesso antecipado a novas versões"
+        }
+    }
+}
 
 // MARK: - Menu Bar Style
 
@@ -126,6 +157,30 @@ class SettingsViewModel {
         didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }
     }
 
+    // MARK: - Admin Mode
+
+    /// SHA256 hash of the admin activation code
+    private let adminCodeHash = "8f843e09cd149d20415454e2d97a225b0f89ebc20b3e4870b3f17c12746a134f"
+
+    var isAdminMode: Bool = false {
+        didSet { UserDefaults.standard.set(isAdminMode, forKey: "isAdminMode") }
+    }
+
+    var updateChannel: UpdateChannel = .stable {
+        didSet { UserDefaults.standard.set(updateChannel.rawValue, forKey: "updateChannel") }
+    }
+
+    func verifyAdminCode(_ code: String) -> Bool {
+        let hash = SHA256.hash(data: Data(code.utf8))
+        let hex = hash.map { String(format: "%02x", $0) }.joined()
+        return hex == adminCodeHash
+    }
+
+    func deactivateAdmin() {
+        isAdminMode = false
+        updateChannel = .stable
+    }
+
     var weeklyTokenLimit: Int = 2_000_000_000 {
         didSet { UserDefaults.standard.set(weeklyTokenLimit, forKey: "weeklyTokenLimit") }
     }
@@ -191,6 +246,13 @@ class SettingsViewModel {
         if let terminalRaw = defaults.string(forKey: "preferredTerminal"),
            let terminal = TerminalLauncherService.Terminal(rawValue: terminalRaw) {
             preferredTerminal = terminal
+        }
+
+        // Admin mode
+        isAdminMode = defaults.bool(forKey: "isAdminMode")
+        if let channelRaw = defaults.string(forKey: "updateChannel"),
+           let channel = UpdateChannel(rawValue: channelRaw) {
+            updateChannel = channel
         }
 
         // Auto-detect plan from Keychain credentials

@@ -485,6 +485,7 @@ struct PopoverContentView: View {
 
         let appPath = Bundle.main.bundlePath
         let pid = ProcessInfo.processInfo.processIdentifier
+        let branch = appViewModel.settingsViewModel.updateChannel.branch
         let script = """
         #!/bin/bash
         set -e
@@ -493,7 +494,7 @@ struct PopoverContentView: View {
         TMPDIR_PATH=$(mktemp -d)
         SRC_DIR="$TMPDIR_PATH/eximia-meter"
         trap "rm -rf $TMPDIR_PATH" EXIT
-        git clone --depth 1 "$REPO_URL" "$SRC_DIR" 2>/dev/null
+        git clone --depth 1 --branch \(branch) "$REPO_URL" "$SRC_DIR" 2>/dev/null
         cd "$SRC_DIR" && swift build -c release 2>/dev/null
         BINARY="$SRC_DIR/.build/release/EximiaMeter"
         APP_BUNDLE="$TMPDIR_PATH/exímIA Meter.app"
@@ -534,7 +535,8 @@ struct PopoverContentView: View {
     // MARK: - Update Check
 
     private func checkForUpdates() {
-        let url = URL(string: "https://raw.githubusercontent.com/hugocapitelli/eximia-meter/main/Info.plist")!
+        let branch = appViewModel.settingsViewModel.updateChannel.branch
+        let url = URL(string: "https://raw.githubusercontent.com/hugocapitelli/eximia-meter/\(branch)/Info.plist")!
         URLSession.shared.dataTask(with: url) { data, response, _ in
             DispatchQueue.main.async {
                 guard let data,

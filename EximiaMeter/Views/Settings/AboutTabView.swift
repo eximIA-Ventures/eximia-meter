@@ -1,11 +1,20 @@
 import SwiftUI
 
 struct AboutTabView: View {
+    @EnvironmentObject var appViewModel: AppViewModel
+
+    private var settings: SettingsViewModel {
+        appViewModel.settingsViewModel
+    }
+
     @State private var isChecking = false
     @State private var isUpdating = false
     @State private var updateAvailable: Bool? = nil // nil = not checked, true/false = result
     @State private var remoteVersion: String? = nil
     @State private var showChangelog = false
+    @State private var showAdminCodeDialog = false
+    @State private var adminCodeInput = ""
+    @State private var adminCodeError = false
 
     var body: some View {
         ScrollView {
@@ -179,6 +188,16 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v2.6.0", items: [
+                                "Admin Mode: ativação por código secreto com hash SHA256",
+                                "Canal de atualização: Stable (main) ou Beta (beta) para admins",
+                                "Check for Updates e Update Now respeitam o canal selecionado"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v2.5.0", items: [
                                 "Menu Bar: labels S (sessão) e W (semanal) nos indicadores",
                                 "Custos: baseado na assinatura real, mostra economia vs API pricing",
@@ -423,6 +442,132 @@ struct AboutTabView: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.lg))
 
+                // Admin Mode card
+                VStack(alignment: .leading, spacing: ExTokens.Spacing._12) {
+                    HStack(spacing: 6) {
+                        Image(systemName: settings.isAdminMode ? "shield.checkered" : "lock.shield")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(settings.isAdminMode ? ExTokens.Colors.statusSuccess : ExTokens.Colors.textMuted)
+
+                        Text("Admin Mode")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(ExTokens.Colors.textPrimary)
+
+                        Spacer()
+
+                        if settings.isAdminMode {
+                            Text("ATIVO")
+                                .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                .foregroundColor(ExTokens.Colors.statusSuccess)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(ExTokens.Colors.statusSuccess.opacity(0.15))
+                                .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.xs))
+                        }
+                    }
+
+                    if settings.isAdminMode {
+                        // Update Channel selector
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Canal de Atualização")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(ExTokens.Colors.textSecondary)
+
+                            HStack(spacing: 8) {
+                                ForEach(UpdateChannel.allCases) { channel in
+                                    Button {
+                                        withAnimation(.easeInOut(duration: 0.15)) {
+                                            settings.updateChannel = channel
+                                            // Reset check state when changing channel
+                                            updateAvailable = nil
+                                            remoteVersion = nil
+                                        }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: channel.icon)
+                                                .font(.system(size: 10))
+                                            Text(channel.rawValue)
+                                                .font(.system(size: 10, weight: .semibold))
+                                        }
+                                        .foregroundColor(settings.updateChannel == channel ? .black : ExTokens.Colors.textSecondary)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 6)
+                                        .background(settings.updateChannel == channel ? ExTokens.Colors.accentPrimary : ExTokens.Colors.backgroundElevated)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: ExTokens.Radius.sm)
+                                                .stroke(settings.updateChannel == channel ? Color.clear : ExTokens.Colors.borderDefault, lineWidth: 1)
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                                    }
+                                    .buttonStyle(HoverableButtonStyle())
+                                }
+                            }
+
+                            Text(settings.updateChannel.description)
+                                .font(.system(size: 9))
+                                .foregroundColor(ExTokens.Colors.textMuted)
+                        }
+
+                        // Deactivate button
+                        Button {
+                            settings.deactivateAdmin()
+                            updateAvailable = nil
+                            remoteVersion = nil
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "lock")
+                                    .font(.system(size: 9))
+                                Text("Desativar Admin")
+                                    .font(.system(size: 10, weight: .medium))
+                            }
+                            .foregroundColor(ExTokens.Colors.destructive)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 5)
+                            .background(ExTokens.Colors.destructiveBg)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: ExTokens.Radius.sm)
+                                    .stroke(ExTokens.Colors.destructive.opacity(0.3), lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                        }
+                        .buttonStyle(HoverableButtonStyle())
+                    } else {
+                        // Activate button
+                        Button {
+                            adminCodeInput = ""
+                            adminCodeError = false
+                            showAdminCodeDialog = true
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "key.fill")
+                                    .font(.system(size: 9))
+                                Text("Ativar Admin Mode")
+                                    .font(.system(size: 10, weight: .medium))
+                            }
+                            .foregroundColor(ExTokens.Colors.textSecondary)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 5)
+                            .background(ExTokens.Colors.backgroundElevated)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: ExTokens.Radius.sm)
+                                    .stroke(ExTokens.Colors.borderDefault, lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                        }
+                        .buttonStyle(HoverableButtonStyle())
+                    }
+                }
+                .padding(ExTokens.Spacing._16)
+                .background(ExTokens.Colors.backgroundCard)
+                .overlay(
+                    RoundedRectangle(cornerRadius: ExTokens.Radius.lg)
+                        .stroke(settings.isAdminMode ? ExTokens.Colors.statusSuccess.opacity(0.3) : ExTokens.Colors.borderDefault, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.lg))
+                .sheet(isPresented: $showAdminCodeDialog) {
+                    adminCodeSheet
+                }
+
                 // Links
                 HStack(spacing: ExTokens.Spacing._8) {
                     Button {
@@ -508,6 +653,65 @@ struct AboutTabView: View {
         }
     }
 
+    // MARK: - Admin Code Sheet
+
+    private var adminCodeSheet: some View {
+        VStack(spacing: ExTokens.Spacing._16) {
+            Image(systemName: "lock.shield")
+                .font(.system(size: 32))
+                .foregroundColor(ExTokens.Colors.accentPrimary)
+
+            Text("Ativar Admin Mode")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(ExTokens.Colors.textPrimary)
+
+            Text("Digite o código de administrador para\nacessar o canal de atualização beta.")
+                .font(.system(size: 11))
+                .foregroundColor(ExTokens.Colors.textSecondary)
+                .multilineTextAlignment(.center)
+
+            SecureField("Código", text: $adminCodeInput)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 200)
+                .onSubmit {
+                    attemptAdminActivation()
+                }
+
+            if adminCodeError {
+                Text("Código incorreto")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(ExTokens.Colors.destructive)
+            }
+
+            HStack(spacing: 12) {
+                Button("Cancelar") {
+                    showAdminCodeDialog = false
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(ExTokens.Colors.textSecondary)
+
+                Button("Ativar") {
+                    attemptAdminActivation()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(adminCodeInput.isEmpty)
+            }
+        }
+        .padding(ExTokens.Spacing._24)
+        .frame(width: 300)
+        .background(ExTokens.Colors.backgroundPrimary)
+    }
+
+    private func attemptAdminActivation() {
+        if settings.verifyAdminCode(adminCodeInput) {
+            settings.isAdminMode = true
+            showAdminCodeDialog = false
+        } else {
+            adminCodeError = true
+            adminCodeInput = ""
+        }
+    }
+
     // MARK: - Info.plist values
 
     private var appVersion: String {
@@ -542,7 +746,8 @@ struct AboutTabView: View {
         updateAvailable = nil
 
         // Use GitHub API (no git clone needed — faster and works without git in PATH)
-        let url = URL(string: "https://raw.githubusercontent.com/hugocapitelli/eximia-meter/main/Info.plist")!
+        let branch = settings.updateChannel.branch
+        let url = URL(string: "https://raw.githubusercontent.com/hugocapitelli/eximia-meter/\(branch)/Info.plist")!
         URLSession.shared.dataTask(with: url) { data, response, error in
             DispatchQueue.main.async {
                 isChecking = false
@@ -579,6 +784,7 @@ struct AboutTabView: View {
         // Write a standalone updater script to /tmp that survives app termination
         let appPath = Bundle.main.bundlePath
         let pid = ProcessInfo.processInfo.processIdentifier
+        let branch = settings.updateChannel.branch
         let script = """
         #!/bin/bash
         set -e
@@ -591,7 +797,7 @@ struct AboutTabView: View {
         SRC_DIR="$TMPDIR_PATH/eximia-meter"
         trap "rm -rf $TMPDIR_PATH" EXIT
 
-        git clone --depth 1 "$REPO_URL" "$SRC_DIR" 2>/dev/null
+        git clone --depth 1 --branch \(branch) "$REPO_URL" "$SRC_DIR" 2>/dev/null
         cd "$SRC_DIR" && swift build -c release 2>/dev/null
 
         BINARY="$SRC_DIR/.build/release/EximiaMeter"
