@@ -133,38 +133,41 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             statusItem?.length = NSStatusItem.variableLength
             button.imagePosition = .imageLeading
 
-            let session = appViewModel.usageViewModel.sessionUsage
-            let weekly = appViewModel.usageViewModel.weeklyUsage
-
-            let sessionPct = Int(session * 100)
-            let weeklyPct = Int(weekly * 100)
+            let usage = appViewModel.usageViewModel
+            let sessionPct = Int(usage.sessionUsage * 100)
+            let weeklyPct = Int(usage.weeklyUsage * 100)
 
             let title = NSMutableAttributedString()
-            let labelAttrs: [NSAttributedString.Key: Any] = [
-                .font: NSFont.systemFont(ofSize: 7, weight: .medium),
-                .foregroundColor: NSColor.secondaryLabelColor
-            ]
 
-            // Session: "S" label + percentage
-            let sessionColor = usageColor(session)
-            title.append(NSAttributedString(string: " S ", attributes: labelAttrs))
-            title.append(NSAttributedString(string: "\(sessionPct)", attributes: [
-                .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .bold),
-                .foregroundColor: sessionColor
-            ]))
+            // Fonts
+            let labelFont = NSFont.systemFont(ofSize: 9, weight: .semibold)
+            let pctFont = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .heavy)
+            let timeFont = NSFont.monospacedDigitSystemFont(ofSize: 8, weight: .regular)
+            let sepFont = NSFont.systemFont(ofSize: 9, weight: .ultraLight)
 
-            // Separator
-            title.append(NSAttributedString(string: "  ", attributes: [
-                .font: NSFont.systemFont(ofSize: 4)
-            ]))
+            // Colors
+            let labelColor = NSColor.labelColor.withAlphaComponent(0.55)
+            let timeColor = NSColor.labelColor.withAlphaComponent(0.35)
+            let sepColor = NSColor.labelColor.withAlphaComponent(0.2)
 
-            // Weekly: "W" label + percentage
-            let weeklyColor = usageColor(weekly)
-            title.append(NSAttributedString(string: "W ", attributes: labelAttrs))
-            title.append(NSAttributedString(string: "\(weeklyPct)", attributes: [
-                .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .bold),
-                .foregroundColor: weeklyColor
-            ]))
+            // S: 8% 4h40m
+            title.append(NSAttributedString(string: " S:", attributes: [.font: labelFont, .foregroundColor: labelColor]))
+            title.append(NSAttributedString(string: "\(sessionPct)%", attributes: [.font: pctFont, .foregroundColor: usageColor(usage.sessionUsage)]))
+            let sTime = compactTime(usage.sessionResetFormatted)
+            if !sTime.isEmpty {
+                title.append(NSAttributedString(string: " \(sTime)", attributes: [.font: timeFont, .foregroundColor: timeColor]))
+            }
+
+            // |
+            title.append(NSAttributedString(string: " | ", attributes: [.font: sepFont, .foregroundColor: sepColor]))
+
+            // W: 23% 5d16h
+            title.append(NSAttributedString(string: "W:", attributes: [.font: labelFont, .foregroundColor: labelColor]))
+            title.append(NSAttributedString(string: "\(weeklyPct)%", attributes: [.font: pctFont, .foregroundColor: usageColor(usage.weeklyUsage)]))
+            let wTime = compactTime(usage.weeklyResetFormatted)
+            if !wTime.isEmpty {
+                title.append(NSAttributedString(string: " \(wTime)", attributes: [.font: timeFont, .foregroundColor: timeColor]))
+            }
 
             button.attributedTitle = title
         } else {
@@ -173,6 +176,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             button.title = ""
             button.attributedTitle = NSAttributedString(string: "")
         }
+    }
+
+    /// Compact time: "5d 16h" → "5d16h", "4h 40m" → "4h40m"
+    private func compactTime(_ formatted: String) -> String {
+        guard formatted != "--" else { return "" }
+        return formatted.replacingOccurrences(of: " ", with: "")
     }
 
     private func usageColor(_ usage: Double) -> NSColor {
