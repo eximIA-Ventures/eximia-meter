@@ -17,6 +17,10 @@ final class AnthropicUsageService {
     private var cachedCredentials: Credentials?
     private var credentialsFetched = false
 
+    /// Keychain service names
+    private let originalService = "Claude Code-credentials"
+    private let cachedService = "EximiaMeter-cached-credentials"
+
     private init() {}
 
     // MARK: - Account Info
@@ -51,9 +55,9 @@ final class AnthropicUsageService {
             expired = Date().timeIntervalSince1970 * 1000 > Double(expiresAt)
         }
 
-        // If token is expired, re-read from Keychain — CLI may have refreshed it
+        // If token is expired, re-read from original Keychain — CLI may have refreshed it
         if expired {
-            cachedCredentials = readCredentials()
+            cachedCredentials = readFromOriginalAndCache()
             if let refreshed = cachedCredentials {
                 let stillExpired: Bool
                 if let newExpiry = refreshed.expiresAt {
@@ -95,9 +99,9 @@ final class AnthropicUsageService {
         guard var credentials = cachedCredentials,
               var accessToken = credentials.accessToken else { return nil }
 
-        // If token expired, re-read from Keychain (CLI may have refreshed)
+        // If token expired, re-read from original Keychain (CLI may have refreshed)
         if let expiresAt = credentials.expiresAt, Date().timeIntervalSince1970 * 1000 > Double(expiresAt) {
-            cachedCredentials = readCredentials()
+            cachedCredentials = readFromOriginalAndCache()
             guard let refreshed = cachedCredentials,
                   let newToken = refreshed.accessToken else { return nil }
             if let newExpiry = refreshed.expiresAt, Date().timeIntervalSince1970 * 1000 > Double(newExpiry) {
@@ -119,7 +123,7 @@ final class AnthropicUsageService {
         return parseResponse(data)
     }
 
-    // MARK: - Keychain
+    // MARK: - Keychain (with cache layer)
 
     private struct Credentials {
         let accessToken: String?
@@ -128,10 +132,44 @@ final class AnthropicUsageService {
         let rateLimitTier: String?
     }
 
+    /// Primary read: try app's own cache first, fall back to original (which may prompt).
     private func readCredentials() -> Credentials? {
+        // 1. Try app's own cached entry (no prompt)
+        if let cached = readFromKeychain(service: cachedService) {
+            let creds = parseKeychainJSON(cached)
+            // Only use if token is not expired
+            if let creds, let expiresAt = creds.expiresAt {
+                if Date().timeIntervalSince1970 * 1000 <= Double(expiresAt) {
+                    return creds
+                }
+                // Expired — fall through to original
+            } else if creds?.accessToken != nil {
+                return creds
+            }
+        }
+
+        // 2. Fall back to original "Claude Code-credentials" (may prompt once)
+        return readFromOriginalAndCache()
+    }
+
+    /// Read from original Claude Code keychain entry and save a copy in app's own entry.
+    private func readFromOriginalAndCache() -> Credentials? {
+        guard let raw = readFromKeychain(service: originalService) else { return nil }
+        let creds = parseKeychainJSON(raw)
+
+        // Cache the raw JSON in app's own keychain entry (future reads won't prompt)
+        if creds?.accessToken != nil {
+            saveToKeychain(service: cachedService, data: raw)
+        }
+
+        return creds
+    }
+
+    /// Low-level keychain read for a given service name.
+    private func readFromKeychain(service: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "Claude Code-credentials",
+            kSecAttrService as String: service,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
@@ -140,9 +178,40 @@ final class AnthropicUsageService {
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess, let data = item as? Data,
               let password = String(data: data, encoding: .utf8) else { return nil }
+        return password
+    }
 
-        // Parse the JSON credential string
-        guard let jsonData = password.data(using: .utf8),
+    /// Save (or update) data in app's own keychain entry.
+    private func saveToKeychain(service: String, data: String) {
+        guard let passwordData = data.data(using: .utf8) else { return }
+
+        // Try to update existing
+        let searchQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service
+        ]
+
+        let updateAttrs: [String: Any] = [
+            kSecValueData as String: passwordData
+        ]
+
+        let updateStatus = SecItemUpdate(searchQuery as CFDictionary, updateAttrs as CFDictionary)
+
+        if updateStatus == errSecItemNotFound {
+            // Create new entry
+            let addQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: "eximia-meter",
+                kSecValueData as String: passwordData
+            ]
+            SecItemAdd(addQuery as CFDictionary, nil)
+        }
+    }
+
+    /// Parse the JSON credential string from keychain.
+    private func parseKeychainJSON(_ raw: String) -> Credentials? {
+        guard let jsonData = raw.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
               let oauth = json["claudeAiOauth"] as? [String: Any] else { return nil }
 
