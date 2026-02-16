@@ -186,6 +186,15 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v2.9.1", items: [
+                                "Fix: elimina prompt de senha do Keychain após cada atualização",
+                                "Leitura de credenciais agora 100% via security CLI (Apple-signed)"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v2.9.0", items: [
                                 "Calibração: aprende relação API↔tokens locais para uso preciso offline",
                                 "Source 'Cal.' quando API indisponível e calibração salva existe",

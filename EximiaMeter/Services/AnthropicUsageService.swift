@@ -132,10 +132,11 @@ final class AnthropicUsageService {
         let rateLimitTier: String?
     }
 
-    /// Primary read: try app's own cache first, fall back to original (which may prompt).
+    /// Primary read: try app's own cache first, fall back to original.
+    /// Both reads use /usr/bin/security CLI to avoid Keychain password prompts on every update.
     private func readCredentials() -> Credentials? {
-        // 1. Try app's own cached entry (no prompt)
-        if let cached = readFromKeychain(service: cachedService) {
+        // 1. Try app's own cached entry via security CLI (no prompt)
+        if let cached = readViaSecurityCLI(service: cachedService) {
             let creds = parseKeychainJSON(cached)
             // Only use if token is not expired
             if let creds, let expiresAt = creds.expiresAt {
@@ -148,7 +149,7 @@ final class AnthropicUsageService {
             }
         }
 
-        // 2. Fall back to original "Claude Code-credentials" (may prompt once)
+        // 2. Fall back to original "Claude Code-credentials"
         return readFromOriginalAndCache()
     }
 
@@ -190,22 +191,6 @@ final class AnthropicUsageService {
         guard let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
               !output.isEmpty else { return nil }
         return output
-    }
-
-    /// Low-level keychain read for app's own entries (no prompt for items we created).
-    private func readFromKeychain(service: String) -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data,
-              let password = String(data: data, encoding: .utf8) else { return nil }
-        return password
     }
 
     /// Save (or update) data in app's own keychain entry.
