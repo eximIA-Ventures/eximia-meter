@@ -57,6 +57,14 @@ class UsageViewModel {
     var todayVsAverageRatio: Double = 0
     var last7DaysTokens: [(String, Int)] = []
 
+    // Work time
+    var workSecondsToday: TimeInterval = 0
+    var workSecondsThisWeek: TimeInterval = 0
+    var formattedWorkToday: String = "0min"
+    var formattedWorkThisWeek: String = "0min"
+    var formattedWorkTodayCompact: String = "0m"
+    var formattedWorkThisWeekCompact: String = "0m"
+
     var lastUpdated: Date = Date()
 
     var usageSourceLabel: String {
@@ -122,6 +130,12 @@ class UsageViewModel {
         weekOverWeekIsUp = usageData.weekOverWeekIsUp
         todayVsAverageRatio = usageData.todayVsAverageRatio
         last7DaysTokens = usageData.last7DaysTokens
+        workSecondsToday = usageData.workSecondsToday
+        workSecondsThisWeek = usageData.workSecondsThisWeek
+        formattedWorkToday = usageData.formattedWorkToday
+        formattedWorkThisWeek = usageData.formattedWorkThisWeek
+        formattedWorkTodayCompact = usageData.formattedWorkTodayCompact
+        formattedWorkThisWeekCompact = usageData.formattedWorkThisWeekCompact
         lastUpdated = usageData.lastUpdated
     }
 }

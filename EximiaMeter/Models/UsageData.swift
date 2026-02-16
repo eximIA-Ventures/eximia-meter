@@ -44,6 +44,26 @@ struct UsageData {
     var dailyModelTokens: [DailyModelTokens] = []
     var hourCounts: [String: Int] = [:]
 
+    // Work time (Active Window Detection from session JSONL files)
+    var workSecondsToday: TimeInterval = 0
+    var workSecondsThisWeek: TimeInterval = 0
+
+    var formattedWorkToday: String {
+        WorkTimeService.format(workSecondsToday)
+    }
+
+    var formattedWorkThisWeek: String {
+        WorkTimeService.format(workSecondsThisWeek)
+    }
+
+    var formattedWorkTodayCompact: String {
+        WorkTimeService.formatCompact(workSecondsToday)
+    }
+
+    var formattedWorkThisWeekCompact: String {
+        WorkTimeService.formatCompact(workSecondsThisWeek)
+    }
+
     var lastUpdated: Date = Date()
 
     var weeklyResetFormatted: String {

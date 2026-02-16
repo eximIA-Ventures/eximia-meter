@@ -10,6 +10,7 @@ class AppViewModel: ObservableObject {
     let monitorService = CLIMonitorService()
     private let projectUsage = ProjectUsageService.shared
     private let apiService = AnthropicUsageService.shared
+    private let workTime = WorkTimeService.shared
 
     private var updateTimer: Timer?
     private var cacheCleanupTimer: Timer?
@@ -31,6 +32,7 @@ class AppViewModel: ObservableObject {
         // Prune stale cache entries every 30 minutes
         cacheCleanupTimer = Timer.scheduledTimer(withTimeInterval: 1800, repeats: true) { [weak self] _ in
             self?.projectUsage.pruneCache()
+            self?.workTime.pruneCache()
         }
     }
 
@@ -115,6 +117,10 @@ class AppViewModel: ObservableObject {
 
             usageData.perProjectTokens = perProject
             usageData.claudePlan = self.settingsViewModel.claudePlan
+
+            // Work time (Active Window Detection)
+            usageData.workSecondsToday = self.workTime.workSecondsToday()
+            usageData.workSecondsThisWeek = self.workTime.workSecondsThisWeek()
 
             // Update UI on main thread
             DispatchQueue.main.async {

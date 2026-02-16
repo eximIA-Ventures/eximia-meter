@@ -51,6 +51,35 @@ struct UsageMetersSection: View {
                 .padding(.top, -8)
             }
 
+            // ─── Work Time ───────────────────────────────────
+            if usage.workSecondsToday > 0 || usage.workSecondsThisWeek > 0 {
+                HStack(spacing: 0) {
+                    Image(systemName: "clock.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(ExTokens.Colors.accentPrimary)
+
+                    Text("  Today ")
+                        .font(ExTokens.Typography.caption)
+                        .foregroundColor(ExTokens.Colors.textMuted)
+                    Text(usage.formattedWorkToday)
+                        .font(ExTokens.Typography.captionMono)
+                        .foregroundColor(ExTokens.Colors.textPrimary)
+
+                    Text("  ·  Week ")
+                        .font(ExTokens.Typography.caption)
+                        .foregroundColor(ExTokens.Colors.textMuted)
+                    Text(usage.formattedWorkThisWeek)
+                        .font(ExTokens.Typography.captionMono)
+                        .foregroundColor(ExTokens.Colors.textPrimary)
+
+                    Spacer()
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 10)
+                .background(ExTokens.Colors.accentPrimary.opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+            }
+
             // ─── Model Distribution ─────────────────────────
             if !sortedModelUsage.isEmpty {
                 Text("MODEL DISTRIBUTION (7D)")
