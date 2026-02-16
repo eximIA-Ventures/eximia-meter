@@ -48,12 +48,19 @@ struct InsightsSection: View {
                     VStack(spacing: ExTokens.Spacing._12) {
                         // Top row: Cost + Streak + Week comparison
                         HStack(spacing: ExTokens.Spacing._6) {
-                            if usage.estimatedWeeklyCostUSD > 0 {
+                            InsightPill(
+                                icon: "dollarsign.circle.fill",
+                                label: "CUSTO/SEM",
+                                value: usage.formattedWeeklyCost,
+                                color: ExTokens.Colors.accentPrimary
+                            )
+
+                            if usage.equivalentAPICostUSD > 0 {
                                 InsightPill(
-                                    icon: "dollarsign.circle.fill",
-                                    label: "CUSTO 7D",
-                                    value: usage.formattedWeeklyCost,
-                                    color: ExTokens.Colors.statusWarning
+                                    icon: "arrow.down.circle.fill",
+                                    label: "ECONOMIA",
+                                    value: usage.formattedSavings,
+                                    color: ExTokens.Colors.statusSuccess
                                 )
                             }
 

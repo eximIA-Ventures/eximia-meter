@@ -106,11 +106,13 @@ struct UsageData {
 
     // MARK: - Cost Estimation
 
-    /// Estimated cost (USD) for tokens used this week, weighted by model distribution
-    var estimatedWeeklyCostUSD: Double {
+    /// The user's active Claude plan (set by UsageCalculatorService)
+    var claudePlan: ClaudePlan = .max20x
+
+    /// Equivalent API cost (USD) if tokens were paid per-token (not subscription)
+    var equivalentAPICostUSD: Double {
         guard tokens7d > 0 else { return 0 }
         if perModelUsage.isEmpty {
-            // Fallback: assume Sonnet pricing
             return Double(tokens7d) / 1_000_000.0 * ClaudeModel.sonnet.costPerMillionTokens
         }
         var cost: Double = 0
@@ -122,18 +124,50 @@ struct UsageData {
         return cost
     }
 
+    /// Real weekly cost based on subscription plan
+    var estimatedWeeklyCostUSD: Double {
+        claudePlan.weeklyCost
+    }
+
+    /// Savings compared to API pricing
+    var weeklySavingsUSD: Double {
+        max(0, equivalentAPICostUSD - claudePlan.weeklyCost)
+    }
+
     var formattedWeeklyCost: String {
-        if estimatedWeeklyCostUSD >= 10_000 {
-            return String(format: "$%.1fK", estimatedWeeklyCostUSD / 1_000)
-        } else if estimatedWeeklyCostUSD >= 1_000 {
-            return String(format: "$%.2fK", estimatedWeeklyCostUSD / 1_000)
-        } else if estimatedWeeklyCostUSD >= 100 {
-            return String(format: "$%.0f", estimatedWeeklyCostUSD)
-        } else if estimatedWeeklyCostUSD >= 1 {
-            return String(format: "$%.2f", estimatedWeeklyCostUSD)
-        } else {
-            return String(format: "$%.3f", estimatedWeeklyCostUSD)
+        let cost = claudePlan.weeklyCost
+        if cost >= 100 {
+            return String(format: "$%.0f", cost)
         }
+        return String(format: "$%.2f", cost)
+    }
+
+    var formattedEquivalentAPICost: String {
+        let cost = equivalentAPICostUSD
+        if cost >= 10_000 {
+            return String(format: "$%.1fK", cost / 1_000)
+        } else if cost >= 1_000 {
+            return String(format: "$%.1fK", cost / 1_000)
+        } else if cost >= 100 {
+            return String(format: "$%.0f", cost)
+        } else if cost >= 1 {
+            return String(format: "$%.2f", cost)
+        } else if cost > 0 {
+            return String(format: "$%.3f", cost)
+        }
+        return "$0"
+    }
+
+    var formattedSavings: String {
+        let s = weeklySavingsUSD
+        if s >= 1_000 {
+            return String(format: "$%.1fK", s / 1_000)
+        } else if s >= 100 {
+            return String(format: "$%.0f", s)
+        } else if s >= 1 {
+            return String(format: "$%.2f", s)
+        }
+        return "$0"
     }
 
     // MARK: - Streak (consecutive active days)

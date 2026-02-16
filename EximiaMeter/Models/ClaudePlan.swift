@@ -41,4 +41,18 @@ enum ClaudePlan: String, Codable, CaseIterable, Identifiable {
         case .max20x: return 200_000_000      // ~200M
         }
     }
+
+    /// Monthly subscription price (USD)
+    var monthlyPrice: Double {
+        switch self {
+        case .pro:    return 20
+        case .max5x:  return 100
+        case .max20x: return 200
+        }
+    }
+
+    /// Estimated weekly cost based on subscription
+    var weeklyCost: Double {
+        monthlyPrice / 4.33 // avg weeks per month
+    }
 }

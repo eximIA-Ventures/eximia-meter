@@ -7,6 +7,11 @@ struct ChangelogVersion {
 
 enum Changelog {
     static let entries: [ChangelogVersion] = [
+        ChangelogVersion(version: "v2.5.0", items: [
+            "Menu Bar: labels S (sessão) e W (semanal) nos indicadores de uso",
+            "Custos: baseado na assinatura real, não API pricing. Mostra economia vs API",
+            "Color Picker: paleta rápida de 10 cores + opção de cor personalizada"
+        ]),
         ChangelogVersion(version: "v2.4.0", items: [
             "Menu Bar: opção para mostrar indicadores de uso (sessão + semanal) ao lado do logo",
             "Settings: card de estilo da Menu Bar (Logo Only / Logo + Usage)",

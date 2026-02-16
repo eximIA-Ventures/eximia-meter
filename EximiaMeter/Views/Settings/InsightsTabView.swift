@@ -41,15 +41,16 @@ struct InsightsTabView: View {
                     VStack(alignment: .leading, spacing: ExTokens.Spacing._16) {
                         premiumCardHeader(icon: "dollarsign.circle", title: "Cost & Projection")
 
+                        // Subscription cost + Burn rate
                         HStack(spacing: 16) {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("CUSTO SEMANAL EST.")
+                                Text("ASSINATURA/SEM")
                                     .font(.system(size: 8, weight: .bold))
                                     .foregroundColor(ExTokens.Colors.textMuted)
                                     .tracking(0.5)
                                 Text(usage.formattedWeeklyCost.isEmpty ? "--" : usage.formattedWeeklyCost)
                                     .font(.system(size: 20, weight: .bold, design: .monospaced))
-                                    .foregroundColor(ExTokens.Colors.statusWarning)
+                                    .foregroundColor(ExTokens.Colors.accentPrimary)
                             }
 
                             Spacer()
@@ -67,6 +68,37 @@ struct InsightsTabView: View {
                             }
                         }
 
+                        // Equivalent API cost + savings
+                        if usage.equivalentAPICostUSD > 0 {
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("EQUIVALENTE API")
+                                        .font(.system(size: 7, weight: .bold))
+                                        .foregroundColor(ExTokens.Colors.textMuted)
+                                        .tracking(0.5)
+                                    Text(usage.formattedEquivalentAPICost)
+                                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                        .foregroundColor(ExTokens.Colors.textTertiary)
+                                }
+
+                                Spacer()
+
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text("ECONOMIA")
+                                        .font(.system(size: 7, weight: .bold))
+                                        .foregroundColor(ExTokens.Colors.textMuted)
+                                        .tracking(0.5)
+                                    Text(usage.formattedSavings)
+                                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                        .foregroundColor(ExTokens.Colors.statusSuccess)
+                                }
+                            }
+                            .padding(8)
+                            .background(ExTokens.Colors.backgroundElevated)
+                            .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
+                        }
+
+                        // Projection
                         if !usage.weeklyProjection.isEmpty {
                             HStack(spacing: 6) {
                                 Image(systemName: usage.projectionIsWarning ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")

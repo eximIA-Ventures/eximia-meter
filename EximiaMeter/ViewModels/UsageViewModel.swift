@@ -43,9 +43,12 @@ class UsageViewModel {
     var burnRatePerHour: Double = 0.0
     var projectionIsWarning: Bool = false
 
-    // Insights
+    // Insights — Cost
     var estimatedWeeklyCostUSD: Double = 0
     var formattedWeeklyCost: String = ""
+    var equivalentAPICostUSD: Double = 0
+    var formattedEquivalentAPICost: String = ""
+    var formattedSavings: String = ""
     var usageStreak: Int = 0
     var peakDetectionMessage: String? = nil
     var modelSuggestion: String? = nil
@@ -109,6 +112,9 @@ class UsageViewModel {
         projectionIsWarning = usageData.projectionIsWarning
         estimatedWeeklyCostUSD = usageData.estimatedWeeklyCostUSD
         formattedWeeklyCost = usageData.formattedWeeklyCost
+        equivalentAPICostUSD = usageData.equivalentAPICostUSD
+        formattedEquivalentAPICost = usageData.formattedEquivalentAPICost
+        formattedSavings = usageData.formattedSavings
         usageStreak = usageData.usageStreak
         peakDetectionMessage = usageData.peakDetectionMessage
         modelSuggestion = usageData.modelSuggestion

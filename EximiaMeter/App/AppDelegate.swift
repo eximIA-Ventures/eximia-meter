@@ -140,23 +140,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             let weeklyPct = Int(weekly * 100)
 
             let title = NSMutableAttributedString()
+            let labelAttrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 7, weight: .medium),
+                .foregroundColor: NSColor.secondaryLabelColor
+            ]
 
-            // Session percentage
+            // Session: "S" label + percentage
             let sessionColor = usageColor(session)
-            title.append(NSAttributedString(string: " \(sessionPct)", attributes: [
-                .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .medium),
+            title.append(NSAttributedString(string: " S ", attributes: labelAttrs))
+            title.append(NSAttributedString(string: "\(sessionPct)", attributes: [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .bold),
                 .foregroundColor: sessionColor
             ]))
 
             // Separator
-            title.append(NSAttributedString(string: " ", attributes: [
+            title.append(NSAttributedString(string: "  ", attributes: [
                 .font: NSFont.systemFont(ofSize: 4)
             ]))
 
-            // Weekly percentage
+            // Weekly: "W" label + percentage
             let weeklyColor = usageColor(weekly)
+            title.append(NSAttributedString(string: "W ", attributes: labelAttrs))
             title.append(NSAttributedString(string: "\(weeklyPct)", attributes: [
-                .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .medium),
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .bold),
                 .foregroundColor: weeklyColor
             ]))
 

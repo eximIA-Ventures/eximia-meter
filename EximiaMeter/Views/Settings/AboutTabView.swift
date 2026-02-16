@@ -179,6 +179,16 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v2.5.0", items: [
+                                "Menu Bar: labels S (sessão) e W (semanal) nos indicadores",
+                                "Custos: baseado na assinatura real, mostra economia vs API pricing",
+                                "Color Picker: paleta rápida de 10 cores + opção personalizada"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v2.4.0", items: [
                                 "Menu Bar: opção para mostrar indicadores de uso ao lado do logo",
                                 "Settings: card de estilo da Menu Bar (Logo Only / Logo + Usage)",

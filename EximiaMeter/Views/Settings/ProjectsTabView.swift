@@ -531,6 +531,7 @@ struct ProjectSettingsRow: View {
     @State private var aiosUpdateResult: Bool? = nil
     @State private var showingNewGroup = false
     @State private var newGroupText = ""
+    @State private var showingColorPicker = false
 
     init(index: Int, project: Project, isVisible: Bool, allGroups: [String] = [], onToggleVisibility: @escaping () -> Void, onModelChange: @escaping (ClaudeModel) -> Void, onColorChange: ((String) -> Void)? = nil, onGroupChange: ((String?) -> Void)? = nil, onRemove: @escaping () -> Void) {
         self.index = index
@@ -571,15 +572,50 @@ struct ProjectSettingsRow: View {
                     .font(.system(size: 8))
                     .foregroundColor(ExTokens.Colors.textMuted)
 
-                // Color dot (clickable picker)
-                ColorPicker("", selection: $selectedColor, supportsOpacity: false)
-                    .labelsHidden()
-                    .frame(width: 16, height: 16)
-                    .onChange(of: selectedColor) { _, newColor in
-                        if let hex = newColor.toHex() {
+                // Color dot (popup palette)
+                Menu {
+                    let presetColors: [(String, String)] = [
+                        ("#F59E0B", "Amber"),
+                        ("#EF4444", "Red"),
+                        ("#F97316", "Orange"),
+                        ("#22C55E", "Green"),
+                        ("#3B82F6", "Blue"),
+                        ("#8B5CF6", "Purple"),
+                        ("#EC4899", "Pink"),
+                        ("#06B6D4", "Cyan"),
+                        ("#6B7280", "Gray"),
+                        ("#FBBF24", "Gold"),
+                    ]
+                    ForEach(presetColors, id: \.0) { hex, name in
+                        Button {
+                            selectedColor = Color(hex: hex)
                             onColorChange?(hex)
+                        } label: {
+                            HStack {
+                                Circle()
+                                    .fill(Color(hex: hex))
+                                    .frame(width: 10, height: 10)
+                                Text(name)
+                            }
                         }
                     }
+                    Divider()
+                    // System color picker fallback
+                    Button("Cor personalizada...") {
+                        showingColorPicker = true
+                    }
+                } label: {
+                    Circle()
+                        .fill(selectedColor)
+                        .frame(width: 14, height: 14)
+                        .overlay(
+                            Circle()
+                                .stroke(selectedColor.opacity(0.5), lineWidth: 1.5)
+                                .frame(width: 18, height: 18)
+                        )
+                }
+                .menuStyle(.borderlessButton)
+                .frame(width: 20)
 
                 // Project info
                 VStack(alignment: .leading, spacing: 1) {
@@ -713,6 +749,22 @@ struct ProjectSettingsRow: View {
             }
         } message: {
             Text("Digite o nome do novo grupo para este projeto.")
+        }
+        .popover(isPresented: $showingColorPicker) {
+            VStack(spacing: 8) {
+                Text("Cor personalizada")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(ExTokens.Colors.textPrimary)
+                ColorPicker("", selection: $selectedColor, supportsOpacity: false)
+                    .labelsHidden()
+                    .onChange(of: selectedColor) { _, newColor in
+                        if let hex = newColor.toHex() {
+                            onColorChange?(hex)
+                        }
+                    }
+            }
+            .padding(12)
+            .background(ExTokens.Colors.backgroundPrimary)
         }
     }
 

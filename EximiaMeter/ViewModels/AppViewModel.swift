@@ -114,6 +114,7 @@ class AppViewModel: ObservableObject {
             )
 
             usageData.perProjectTokens = perProject
+            usageData.claudePlan = self.settingsViewModel.claudePlan
 
             // Update UI on main thread
             DispatchQueue.main.async {
