@@ -15,7 +15,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const APP_NAME = 'exímIA Meter';
-const REPO_URL = 'https://github.com/hugocapitelli/eximia-meter.git';
+const REPO_URL = 'https://github.com/eximIA-Ventures/eximia-meter.git';
 const INSTALL_PATH = '/Applications/exímIA Meter.app';
 
 // ─── Colors ──────────────────────────────────────────

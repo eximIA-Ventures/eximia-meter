@@ -590,7 +590,7 @@ struct AboutTabView: View {
                 // Links
                 HStack(spacing: ExTokens.Spacing._8) {
                     Button {
-                        if let url = URL(string: "https://github.com/hugocapitelli/eximia-meter") {
+                        if let url = URL(string: "https://github.com/eximIA-Ventures/eximia-meter") {
                             NSWorkspace.shared.open(url)
                         }
                     } label: {
@@ -734,7 +734,7 @@ struct AboutTabView: View {
 
         // Use GitHub API (no git clone needed — faster and works without git in PATH)
         let branch = settings.updateChannel.branch
-        let urlString = "https://raw.githubusercontent.com/hugocapitelli/eximia-meter/\(branch)/Info.plist"
+        let urlString = "https://raw.githubusercontent.com/eximIA-Ventures/eximia-meter/\(branch)/Info.plist"
         print("[Updates] Checking branch: \(branch), URL: \(urlString)")
         print("[Updates] Admin mode: \(settings.isAdminMode), Channel: \(settings.updateChannel.rawValue)")
         print("[Updates] Local version: \(appVersion)")
@@ -783,7 +783,7 @@ struct AboutTabView: View {
         # Wait for the current app to quit
         while kill -0 \(pid) 2>/dev/null; do sleep 0.3; done
 
-        REPO_URL="https://github.com/hugocapitelli/eximia-meter.git"
+        REPO_URL="https://github.com/eximIA-Ventures/eximia-meter.git"
         TMPDIR_PATH=$(mktemp -d)
         SRC_DIR="$TMPDIR_PATH/eximia-meter"
         trap "rm -rf $TMPDIR_PATH" EXIT

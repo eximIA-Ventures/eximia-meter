@@ -1,7 +1,7 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════
 #  exímIA Meter — Installer
-#  Usage: curl -fsSL https://raw.githubusercontent.com/hugocapitelli/eximia-meter/main/install.sh | bash
+#  Usage: curl -fsSL https://raw.githubusercontent.com/eximIA-Ventures/eximia-meter/main/install.sh | bash
 # ═══════════════════════════════════════════════════════
 
 set -e
@@ -17,7 +17,7 @@ DIM='\033[2m'
 RESET='\033[0m'
 
 APP_NAME="exímIA Meter"
-REPO_URL="https://github.com/hugocapitelli/eximia-meter.git"
+REPO_URL="https://github.com/eximIA-Ventures/eximia-meter.git"
 INSTALL_PATH="/Applications/exímIA Meter.app"
 
 ok()   { echo -e "  ${GREEN}✓${RESET} $1"; }
@@ -164,5 +164,5 @@ echo -e "  ${GRAY}The app appears in your menu bar (top right).${RESET}"
 echo -e "  ${GRAY}Look for the exímIA logo icon.${RESET}"
 echo ""
 echo -e "  ${DIM}To uninstall:${RESET}"
-echo -e "  ${WHITE}curl -fsSL https://raw.githubusercontent.com/hugocapitelli/eximia-meter/main/uninstall.sh | bash${RESET}"
+echo -e "  ${WHITE}curl -fsSL https://raw.githubusercontent.com/eximIA-Ventures/eximia-meter/main/uninstall.sh | bash${RESET}"
 echo ""

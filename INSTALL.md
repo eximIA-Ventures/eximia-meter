@@ -13,7 +13,7 @@ Monitor de uso do Claude Code para macOS. Mostra consumo de tokens semanal, por 
 Abra o Terminal e cole:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hugocapitelli/eximia-meter/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/eximIA-Ventures/eximia-meter/main/install.sh | bash
 ```
 
 Isso vai:
@@ -33,7 +33,7 @@ Se preferir ter controle total:
 
 ```bash
 # 1. Clonar o repositório
-git clone https://github.com/hugocapitelli/eximia-meter.git
+git clone https://github.com/eximIA-Ventures/eximia-meter.git
 cd eximia-meter
 
 # 2. Compilar
@@ -90,7 +90,7 @@ O app ainda não tem auto-update. Para atualizar para a versão mais recente:
 ### Opção 1: Re-rodar o instalador (mais fácil)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hugocapitelli/eximia-meter/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/eximIA-Ventures/eximia-meter/main/install.sh | bash
 ```
 
 O instalador detecta a instalação existente e substitui automaticamente.

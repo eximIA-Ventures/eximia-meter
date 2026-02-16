@@ -1,27 +1,45 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/hugocapitelli/eximia-meter/main/Resources/AppIcon.icns" width="128" alt="exímIA Meter icon" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Logos/symbol-dark.svg" />
+    <source media="(prefers-color-scheme: light)" srcset="Logos/symbol-light.svg" />
+    <img src="Logos/symbol-light.svg" width="80" alt="exímIA Meter" />
+  </picture>
 </p>
 
 <h1 align="center">exímIA Meter</h1>
 
 <p align="center">
-  <strong>macOS menu bar app for monitoring Claude Code token usage in real-time</strong>
+  <strong>macOS menu bar app for monitoring Claude Code usage and costs in real-time</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.0.0-F59E0B?style=flat-square" alt="Version" />
+  <a href="https://github.com/eximIA-Ventures/eximia-meter/releases"><img src="https://img.shields.io/badge/version-2.8.1-F59E0B?style=flat-square" alt="Version" /></a>
   <img src="https://img.shields.io/badge/platform-macOS%2014+-000?style=flat-square&logo=apple&logoColor=white" alt="Platform" />
   <img src="https://img.shields.io/badge/swift-5.9+-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift" />
-  <img src="https://img.shields.io/badge/license-MIT-10B981?style=flat-square" alt="License" />
+  <img src="https://img.shields.io/badge/dependencies-0-10B981?style=flat-square" alt="Zero Dependencies" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-10B981?style=flat-square" alt="License" /></a>
+</p>
+
+<p align="center">
+  <a href="#installation">Install</a> •
+  <a href="#features">Features</a> •
+  <a href="#how-it-works">How It Works</a> •
+  <a href="#architecture">Architecture</a> •
+  <a href="#configuration">Configuration</a> •
+  <a href="#troubleshooting">Troubleshooting</a>
 </p>
 
 ---
 
-## What is it?
+## Overview
 
-**exímIA Meter** is a lightweight macOS menu bar app that tracks your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) token usage — weekly, daily, per session, and per project. It reads local files from `~/.claude/` and optionally connects to the Anthropic API for real-time usage data.
+**exímIA Meter** lives in your macOS menu bar and gives you full visibility into your [Claude Code](https://docs.anthropic.com/en/docs/claude-code) token consumption — weekly limits, daily burn rate, per-project breakdown, cost estimates, and smart alerts.
 
-No API keys required for basic usage. No network calls needed. Everything runs locally.
+It reads local files from `~/.claude/` and optionally connects to the Anthropic API for real-time data. **No API keys required for basic usage. No network calls needed. Everything runs locally.**
+
+### Why?
+
+Claude Code's Pro/Max plans have weekly token limits but no built-in dashboard. exímIA Meter fills that gap — showing exactly where your tokens go, when you'll hit the limit, and how much it would cost at API pricing.
 
 ---
 
@@ -37,7 +55,7 @@ No API keys required for basic usage. No network calls needed. Everything runs l
 | **Per-Project Usage** | Token consumption by project with relative bars |
 | **Project Cards** | Quick-launch projects, change model, update AIOS — all from the popover |
 
-### Insights (v2.0)
+### Insights
 
 | Feature | Description |
 |---------|-------------|
@@ -55,9 +73,9 @@ No API keys required for basic usage. No network calls needed. Everything runs l
 |---------|-------------|
 | **Threshold Alerts** | Warning and critical alerts for session & weekly usage |
 | **Hysteresis** | 5% margin prevents notification spam when usage fluctuates |
-| **Adaptive Cooldown** | Escalates from 5min to 4h cooldown after first fire |
+| **Adaptive Cooldown** | Escalates from 5 min to 4 h cooldown after first fire |
 | **Weekly Report** | Sunday summary with tokens, sessions, cost, and streak |
-| **Idle Detection** | Welcome-back notification after 4h+ of inactivity |
+| **Idle Detection** | Welcome-back notification after 4 h+ of inactivity |
 | **macOS Native** | Notification Center banners, custom sounds (14 system sounds) |
 
 ### Project Management
@@ -65,11 +83,19 @@ No API keys required for basic usage. No network calls needed. Everything runs l
 | Feature | Description |
 |---------|-------------|
 | **Auto-Discovery** | Finds projects in `~/.claude/projects/` |
+| **Groups** | Organize projects into custom groups with drag & drop |
 | **Rename Detection** | Detects renamed directories and offers to update paths |
-| **Custom Colors** | Color picker for each project |
+| **Custom Colors** | Color picker for each project (10 quick colors + custom) |
 | **Visibility Toggle** | Show/hide projects on the main page |
-| **AIOS Update** | One-click `npx aios-core@latest install` for AIOS projects |
 | **Drag & Reorder** | Reorder projects by dragging |
+
+### Work Time Tracker
+
+| Feature | Description |
+|---------|-------------|
+| **Active Window Detection** | Tracks time spent in terminals/IDEs using macOS Accessibility API |
+| **Session Tracking** | Automatic sessions based on activity windows |
+| **Work Patterns** | Visualize your coding patterns throughout the day |
 
 ### Other
 
@@ -77,27 +103,33 @@ No API keys required for basic usage. No network calls needed. Everything runs l
 |---------|-------------|
 | **Export CSV** | Export all usage data (tokens, messages, sessions, cost, per-project) |
 | **Self-Update** | Check for updates and install directly from the app |
+| **Admin Mode** | Secret code activation for beta channel access |
 | **Changelog Popup** | Auto-shows what's new after each update |
 | **Dark Mode** | Forced dark theme with custom design tokens |
-| **3-Layer Data** | Hybrid: Anthropic API > local .jsonl scan > stats-cache estimation |
+| **Menu Bar Indicators** | Color-matched usage indicators with opacity gradient |
 
 ---
 
 ## Installation
 
-### Quick Install (recommended)
+### npm (recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hugocapitelli/eximia-meter/main/install.sh | bash
+npx @eximia-ventures/meter
 ```
 
-This will clone, build, install to `/Applications/`, and open the app.
-
-### Manual Install
+### Shell Script
 
 ```bash
-git clone https://github.com/hugocapitelli/eximia-meter.git
+curl -fsSL https://raw.githubusercontent.com/eximIA-Ventures/eximia-meter/main/install.sh | bash
+```
+
+### Manual Build
+
+```bash
+git clone https://github.com/eximIA-Ventures/eximia-meter.git
 cd eximia-meter
+swift build -c release
 bash build-app.sh release
 cp -r "dist/exímIA Meter.app" /Applications/
 open "/Applications/exímIA Meter.app"
@@ -105,26 +137,35 @@ open "/Applications/exímIA Meter.app"
 
 ### Requirements
 
-- **macOS 14 (Sonoma)** or later
-- **Xcode Command Line Tools** (`xcode-select --install`)
-- **Claude Code** installed with at least one usage session
+| Requirement | Minimum |
+|-------------|---------|
+| **macOS** | 14.0 (Sonoma) |
+| **Xcode CLT** | `xcode-select --install` |
+| **Claude Code** | Any version with at least one usage session |
 
 ---
 
 ## How It Works
 
-exímIA Meter reads local files that Claude Code writes automatically:
+### 3-Layer Hybrid Data System
 
-```
-~/.claude/
-├── stats-cache.json       # Accumulated stats (Layer 3)
-├── history.jsonl           # Session history
-└── projects/
-    └── <project-dir>/
-        └── *.jsonl         # Per-session detailed logs (Layer 2)
-```
+exímIA Meter combines three data sources, prioritizing accuracy:
 
-**3-Layer Hybrid Data System:**
+```mermaid
+flowchart TD
+    A["🔄 Refresh Cycle (60s)"] --> B{Anthropic OAuth\navailable?}
+    B -- Yes --> C["Layer 1: API\nReal-time utilization %\nExact reset times"]
+    B -- No --> D{Local .jsonl\nfiles exist?}
+    D -- Yes --> E["Layer 2: JSONL Scan\nExact token counts\nPer-session breakdown"]
+    D -- No --> F["Layer 3: Stats Cache\nEstimated from\nstats-cache.json"]
+    C --> G["📊 Dashboard"]
+    E --> G
+    F --> G
+
+    style C fill:#10B981,color:#fff
+    style E fill:#F59E0B,color:#000
+    style F fill:#6B7280,color:#fff
+```
 
 | Layer | Source | Priority | Description |
 |-------|--------|----------|-------------|
@@ -132,26 +173,50 @@ exímIA Meter reads local files that Claude Code writes automatically:
 | 2 | Local `.jsonl` scan | Medium | Exact token counts from session logs |
 | 3 | `stats-cache.json` | Fallback | Estimated from cached statistics |
 
-The app refreshes every 60 seconds. Click the timestamp in the footer to refresh manually.
+### File System Sources
 
----
+```
+~/.claude/
+├── statsig/
+│   └── usage_data.json    # API-level usage stats
+├── projects/
+│   └── <project-dir>/
+│       └── *.jsonl         # Per-session detailed logs (Layer 2)
+└── statsig/
+    └── ...                 # OAuth credentials (auto-detected)
+```
 
-## Configuration
+### Notification Flow
 
-On first launch:
+```mermaid
+flowchart LR
+    A["Usage\nUpdated"] --> B{"Above\nthreshold?"}
+    B -- No --> C["✅ No action"]
+    B -- Yes --> D{"Hysteresis\ncheck (5%)"}
+    D -- "Fluctuating" --> C
+    D -- "Confirmed" --> E{"Cooldown\nactive?"}
+    E -- Yes --> C
+    E -- No --> F["🔔 Send\nNotification"]
+    F --> G["Start adaptive\ncooldown\n(5min → 4h)"]
+```
 
-1. Click the menu bar icon (top-right corner)
-2. Go to **Settings** (gear icon)
-3. Select your **Claude plan**:
-   - **Pro** — ~100M tokens/week
-   - **Max 5x** — ~500M tokens/week
-   - **Max 20x** — ~2B tokens/week
-4. Configure alert thresholds (optional)
-5. Add project folders via **Projects** tab or use **Discover**
+### Self-Update Flow
 
-### API Connection (Optional)
-
-If Claude Code is authenticated via OAuth, the app auto-detects credentials from `~/.claude/` and uses the Anthropic API for precise usage data. No manual configuration needed.
+```mermaid
+flowchart TD
+    A["Check for Updates"] --> B["Fetch remote Info.plist\nfrom GitHub"]
+    B --> C{"Remote version\n> local?"}
+    C -- No --> D["✅ Up to date"]
+    C -- Yes --> E["Show Update Banner"]
+    E --> F["User clicks\nUpdate Now"]
+    F --> G["Write updater script\nto /tmp"]
+    G --> H["Launch nohup process"]
+    H --> I["Quit app"]
+    I --> J["Updater waits\nfor app to exit"]
+    J --> K["Clone → Build → Sign"]
+    K --> L["Replace .app bundle"]
+    L --> M["Relaunch app"]
+```
 
 ---
 
@@ -159,30 +224,85 @@ If Claude Code is authenticated via OAuth, the app auto-detects credentials from
 
 ```
 EximiaMeter/
-├── App/                    # AppDelegate, entry point
-├── Models/                 # Data models (Project, UsageData, ClaudeModel, etc.)
-├── Services/               # Business logic
+├── App/                        # AppDelegate, entry point
+├── Models/                     # Data models
+│   ├── Project, UsageData      # Core domain
+│   ├── ClaudeModel, ClaudePlan # Claude-specific enums
+│   ├── Changelog               # Version history
+│   └── WorkSession             # Time tracking
+├── Services/                   # Business logic
 │   ├── CLIMonitorService       # FSEvents file watcher + polling fallback
 │   ├── ProjectUsageService     # Per-project .jsonl scanning with caching
 │   ├── UsageCalculatorService  # 3-layer hybrid calculation
 │   ├── AnthropicUsageService   # OAuth API client
 │   ├── NotificationService     # Alerts with hysteresis & persistence
-│   └── ProjectDiscoveryService # Auto-discover Claude projects
-├── ViewModels/             # Observable view models
+│   ├── ProjectDiscoveryService # Auto-discover Claude projects
+│   └── WorkTimeService         # Active window tracking
+├── ViewModels/                 # Observable view models
 ├── Views/
-│   ├── MenuBar/            # Popover UI (dashboard, cards, insights)
-│   ├── Settings/           # Settings window (tabs)
-│   ├── Onboarding/         # First-launch wizard
-│   └── Shared/             # Reusable components (ExButton, ExProgressBar, etc.)
-└── Storage/                # UserDefaults persistence
+│   ├── MenuBar/                # Popover UI (dashboard, cards, insights)
+│   ├── Settings/               # Settings window (6 tabs)
+│   ├── Onboarding/             # First-launch wizard
+│   └── Shared/                 # Design system (ExButton, ExProgressBar, etc.)
+└── Storage/                    # UserDefaults persistence
 ```
 
-**Key design decisions:**
-- Pure Swift + SwiftUI (no external dependencies)
-- `@Observable` pattern (not Combine's `@Published`)
-- NSPopover for menu bar UI
-- NSWindow for Settings / Onboarding / Changelog
-- Design tokens via `ExTokens` enum (colors, typography, spacing, radius)
+### Design Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| UI Framework | SwiftUI + AppKit | SwiftUI for views, AppKit for NSPopover/NSWindow |
+| Observation | `@Observable` | Modern Swift observation, not Combine |
+| Dependencies | Zero | No SPM packages — ships self-contained |
+| Menu Bar | NSPopover | Native macOS menu bar experience |
+| Design System | `ExTokens` enum | Centralized colors, typography, spacing, radii |
+| Data Refresh | 60s polling + FSEvents | Balanced between freshness and CPU usage |
+| Notifications | UNUserNotificationCenter | Native macOS Notification Center |
+
+---
+
+## Configuration
+
+### First Launch
+
+1. Click the menu bar icon (top-right corner)
+2. Go to **Settings** (gear icon)
+3. Select your **Claude plan**:
+
+| Plan | Weekly Token Limit |
+|------|--------------------|
+| Pro | ~100M tokens |
+| Max 5x | ~500M tokens |
+| Max 20x | ~2B tokens |
+
+4. Configure alert thresholds (optional)
+5. Add project folders via **Projects** tab or use **Discover**
+
+### API Connection (Optional)
+
+If Claude Code is authenticated via OAuth, the app auto-detects credentials from `~/.claude/` and uses the Anthropic API for precise usage data. No manual configuration needed.
+
+### Menu Bar Style
+
+Choose between display modes in Settings → General:
+
+| Style | Description |
+|-------|-------------|
+| **Logo Only** | Clean, minimal — just the exímIA icon |
+| **Logo + Usage** | Shows session (S) and weekly (W) usage indicators |
+
+Indicators are color-coded: 🟢 green (<50%), 🟠 orange (50-80%), 🔴 red (>80%).
+
+### Popover Size
+
+Configurable in Settings → General:
+
+| Size | Best For |
+|------|----------|
+| Compact | Quick glance |
+| Normal | Default experience |
+| Large | More project cards visible |
+| Extra Large | Full analytics at a glance |
 
 ---
 
@@ -190,27 +310,43 @@ EximiaMeter/
 
 ### From the App
 
-Go to **Settings > About > Check for Updates**. If a new version is available, click **Update Now** — the app will download, build, and reinstall automatically.
+Go to **Settings → About → Check for Updates**. If a new version is available, click **Update Now** — the app will download, build, and reinstall automatically.
 
 An update banner also appears on the main popover when a new version is detected.
 
 ### From Terminal
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/hugocapitelli/eximia-meter/main/install.sh | bash
+npx @eximia-ventures/meter
 ```
+
+or
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/eximIA-Ventures/eximia-meter/main/install.sh | bash
+```
+
+### Beta Channel
+
+Activate **Admin Mode** in Settings → About to access the beta update channel with early features.
 
 ---
 
 ## Uninstall
 
-From the app: **Settings > About > Uninstall**
+From the app: **Settings → About → Uninstall**
 
 Or manually:
 
 ```bash
 rm -rf "/Applications/exímIA Meter.app"
-defaults delete com.eximia.meter  # Remove preferences
+defaults delete com.eximia.meter
+```
+
+Or via script:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/eximIA-Ventures/eximia-meter/main/uninstall.sh | bash
 ```
 
 ---
@@ -219,62 +355,47 @@ defaults delete com.eximia.meter  # Remove preferences
 
 | Problem | Solution |
 |---------|----------|
-| No data shown | Use Claude Code at least once to generate `~/.claude/stats-cache.json` |
-| Build failed | Run `xcode-select --install` to install Swift toolchain |
-| App not in menu bar | It runs as a menu bar app (no Dock icon). Look for the icon near the clock |
-| macOS blocks the app | System Settings > Privacy & Security > scroll down > "Open Anyway" |
-| Notifications not working | System Settings > Notifications > exímIA Meter > Allow Notifications |
+| **No data shown** | Use Claude Code at least once to generate `~/.claude/` files |
+| **Build failed** | Run `xcode-select --install` to install Swift toolchain |
+| **App not in menu bar** | It runs as a menu bar app (no Dock icon). Look for the icon near the clock |
+| **macOS blocks the app** | System Settings → Privacy & Security → scroll down → "Open Anyway" |
+| **Notifications not working** | System Settings → Notifications → exímIA Meter → Allow Notifications |
+| **Stale data** | Click the timestamp in the footer to force a manual refresh |
+| **OAuth not detected** | Make sure Claude Code is authenticated (`claude` → sign in) |
+| **Work Time not tracking** | Grant Accessibility permission in System Settings → Privacy & Security → Accessibility |
 
 ---
 
 ## Tech Stack
 
-- **Language:** Swift 5.9+
-- **UI:** SwiftUI + AppKit (NSPopover, NSWindow)
-- **Target:** macOS 14+ (Sonoma)
-- **Build:** Swift Package Manager
-- **Dependencies:** None (zero external packages)
-- **Lines of code:** ~6,000+ across 55 Swift files
+| Component | Technology |
+|-----------|------------|
+| **Language** | Swift 5.9+ |
+| **UI** | SwiftUI + AppKit (NSPopover, NSWindow) |
+| **Target** | macOS 14+ (Sonoma) |
+| **Build** | Swift Package Manager |
+| **Dependencies** | None (zero external packages) |
+| **Codebase** | ~11,000 lines across 57 Swift files |
 
 ---
 
-## Changelog
+## Contributing
 
-See the full changelog in **Settings > About > What's New** or in [`Changelog.swift`](EximiaMeter/Models/Changelog.swift).
-
-### v2.0.0
-- Insights dashboard: cost estimation, streak, week-over-week comparison
-- Sparkline chart (7-day tokens) and activity heatmap (24h)
-- Peak detection and model suggestion
-- CSV export of all usage data
-- Custom project colors
-- Weekly summary notification (Sundays)
-- Idle detection with welcome-back notification
-
-### v1.7.x
-- Notification spam fix (persistence + hysteresis + adaptive cooldown)
-- Burn rate projection (% remaining at reset)
-- AIOS update button on project cards
-- Directory rename detection
-- Changelog popup after updates
-
-### v1.6.0
-- Update banner on home page
-- Eye toggle for project visibility
-- Auto-prune deleted projects
-- OAuth token auto-refresh
-- In-app self-update with code signing
-
-[View all versions...](EximiaMeter/Models/Changelog.swift)
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feat/my-feature`)
+3. Make your changes
+4. Build and test (`swift build`)
+5. Commit with conventional commits (`feat:`, `fix:`, `docs:`, etc.)
+6. Open a Pull Request
 
 ---
 
 ## License
 
-MIT
+[MIT](LICENSE)
 
 ---
 
 <p align="center">
-  Built with <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a>
+  <sub>Built with <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a></sub>
 </p>
