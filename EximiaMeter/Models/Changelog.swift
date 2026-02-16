@@ -7,6 +7,16 @@ struct ChangelogVersion {
 
 enum Changelog {
     static let entries: [ChangelogVersion] = [
+        ChangelogVersion(version: "v2.8.0", items: [
+            "Work Time: medidor de horas trabalhadas (Active Window Detection)",
+            "Dashboard: seção 'Today / Week' com tempo ativo de coding",
+            "Cálculo inteligente: analisa timestamps das sessões Claude para detectar tempo real de trabalho"
+        ]),
+        ChangelogVersion(version: "v2.7.0", items: [
+            "Menu Bar: indicadores redesenhados — S: 8% 4h40m  W: 23% 5d16h",
+            "Menu Bar: labels brancos, valores coloridos, tempo compacto e sutil",
+            "Admin Mode: ativação por NSAlert nativo (fix do sheet que não abria)"
+        ]),
         ChangelogVersion(version: "v2.6.0", items: [
             "Admin Mode: ativação por código secreto com hash SHA256",
             "Canal de atualização: Stable (main) ou Beta (beta) para admins",

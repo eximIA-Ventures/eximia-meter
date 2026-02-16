@@ -101,6 +101,13 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     // MARK: - Check & Notify
 
     func checkAndNotify(usageData: UsageData, thresholds: ThresholdConfig) {
+        print("[Notifications] check: weekly=\(Int(usageData.weeklyUsage * 100))% session=\(Int(usageData.sessionUsage * 100))% source=\(usageData.usageSource)")
+
+        // Never fire alerts based on estimated data — wait for API confirmation
+        guard usageData.usageSource == .api || usageData.usageSource == .exactLocal else {
+            return
+        }
+
         // Detect weekly reset: if usage dropped by more than 50%, clear all weekly flags
         detectWeeklyReset(currentWeeklyUsage: usageData.weeklyUsage)
 
@@ -110,16 +117,28 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         resetIfBelow(id: "weekly-warning", value: usageData.weeklyUsage, threshold: thresholds.weeklyWarning)
         resetIfBelow(id: "weekly-critical", value: usageData.weeklyUsage, threshold: thresholds.weeklyCritical)
 
-        checkThreshold(
-            id: "session-warning",
-            value: usageData.sessionUsage,
-            threshold: thresholds.sessionWarning,
-            title: "Session Warning",
-            body: "Session usage at \(Int(usageData.sessionUsage * 100))%",
-            severity: "warning"
+        // Check critical FIRST — skip warning if critical fires for the same metric
+        let weeklyCriticalFired = checkThreshold(
+            id: "weekly-critical",
+            value: usageData.weeklyUsage,
+            threshold: thresholds.weeklyCritical,
+            title: "Weekly Critical",
+            body: "Weekly usage at \(Int(usageData.weeklyUsage * 100))%! Consider slowing down.",
+            severity: "critical"
         )
 
-        checkThreshold(
+        if !weeklyCriticalFired {
+            _ = checkThreshold(
+                id: "weekly-warning",
+                value: usageData.weeklyUsage,
+                threshold: thresholds.weeklyWarning,
+                title: "Weekly Warning",
+                body: "Weekly usage at \(Int(usageData.weeklyUsage * 100))%",
+                severity: "warning"
+            )
+        }
+
+        let sessionCriticalFired = checkThreshold(
             id: "session-critical",
             value: usageData.sessionUsage,
             threshold: thresholds.sessionCritical,
@@ -128,23 +147,16 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             severity: "critical"
         )
 
-        checkThreshold(
-            id: "weekly-warning",
-            value: usageData.weeklyUsage,
-            threshold: thresholds.weeklyWarning,
-            title: "Weekly Warning",
-            body: "Weekly usage at \(Int(usageData.weeklyUsage * 100))%",
-            severity: "warning"
-        )
-
-        checkThreshold(
-            id: "weekly-critical",
-            value: usageData.weeklyUsage,
-            threshold: thresholds.weeklyCritical,
-            title: "Weekly Critical",
-            body: "Weekly usage at \(Int(usageData.weeklyUsage * 100))%! Consider slowing down.",
-            severity: "critical"
-        )
+        if !sessionCriticalFired {
+            _ = checkThreshold(
+                id: "session-warning",
+                value: usageData.sessionUsage,
+                threshold: thresholds.sessionWarning,
+                title: "Session Warning",
+                body: "Session usage at \(Int(usageData.sessionUsage * 100))%",
+                severity: "warning"
+            )
+        }
     }
 
     func resetNotifications() {
@@ -225,14 +237,15 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
         UserDefaults.standard.set(currentWeeklyUsage, forKey: kLastKnownWeeklyUsage)
     }
 
-    private func checkThreshold(id: String, value: Double, threshold: Double, title: String, body: String, severity: String) {
-        guard value >= threshold else { return }
-        guard !notifiedThresholds.contains(id) else { return }
+    @discardableResult
+    private func checkThreshold(id: String, value: Double, threshold: Double, title: String, body: String, severity: String) -> Bool {
+        guard value >= threshold else { return false }
+        guard !notifiedThresholds.contains(id) else { return false }
 
         // Adaptive cooldown: use extended cooldown if this alert was already fired before
         let cooldown = lastNotifiedAt[id] != nil ? extendedCooldown : baseCooldown
         if let lastFired = lastNotifiedAt[id], Date().timeIntervalSince(lastFired) < cooldown {
-            return
+            return false
         }
 
         notifiedThresholds.insert(id)
@@ -273,6 +286,8 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
                 )
             }
         }
+
+        return true
     }
 
     // MARK: - Weekly Summary Report
