@@ -248,10 +248,19 @@ cd "/Users/hugocapitelli/Dev/hugocapitelli/exímia-meter" && swift build
 ### 3. Commit & Push
 - `git add` dos arquivos modificados
 - Commit com mensagem descritiva usando conventional commits
-- `git push` para o remote
+- `git push` para o remote (main)
 
-### 4. Verificação
+### 4. Atualizar branch beta
+- **OBRIGATÓRIO:** Após o push para `main`, sempre sincronizar a branch `beta`:
+```bash
+git checkout beta && git merge main && git push && git checkout main
+```
+- A branch `beta` deve estar **sempre** atualizada com `main` após cada release.
+- Usuários no canal Beta recebem atualizações pela branch `beta` — se não atualizar, eles ficam defasados.
+
+### 5. Verificação
 - Confirmar que `git status` está limpo
+- Confirmar que ambas as branches (`main` e `beta`) estão atualizadas no remote
 - Informar ao usuário que pode atualizar pelo app (Settings → About → Check for Updates)
 
 **NUNCA esquecer o bump de versão — sem isso o "Check for Updates" não detecta a atualização.**
