@@ -12,8 +12,6 @@ struct AboutTabView: View {
     @State private var updateAvailable: Bool? = nil // nil = not checked, true/false = result
     @State private var remoteVersion: String? = nil
     @State private var showChangelog = false
-    @State private var showAdminCodeDialog = false
-    @State private var adminCodeInput = ""
     @State private var adminCodeError = false
 
     var body: some View {
@@ -534,9 +532,7 @@ struct AboutTabView: View {
                     } else {
                         // Activate button
                         Button {
-                            adminCodeInput = ""
-                            adminCodeError = false
-                            showAdminCodeDialog = true
+                            showAdminCodeAlert()
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "key.fill")
@@ -555,6 +551,12 @@ struct AboutTabView: View {
                             .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.sm))
                         }
                         .buttonStyle(HoverableButtonStyle())
+
+                        if adminCodeError {
+                            Text("Código incorreto")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(ExTokens.Colors.destructive)
+                        }
                     }
                 }
                 .padding(ExTokens.Spacing._16)
@@ -564,9 +566,6 @@ struct AboutTabView: View {
                         .stroke(settings.isAdminMode ? ExTokens.Colors.statusSuccess.opacity(0.3) : ExTokens.Colors.borderDefault, lineWidth: 1)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: ExTokens.Radius.lg))
-                .sheet(isPresented: $showAdminCodeDialog) {
-                    adminCodeSheet
-                }
 
                 // Links
                 HStack(spacing: ExTokens.Spacing._8) {
@@ -653,62 +652,30 @@ struct AboutTabView: View {
         }
     }
 
-    // MARK: - Admin Code Sheet
+    // MARK: - Admin Code Alert
 
-    private var adminCodeSheet: some View {
-        VStack(spacing: ExTokens.Spacing._16) {
-            Image(systemName: "lock.shield")
-                .font(.system(size: 32))
-                .foregroundColor(ExTokens.Colors.accentPrimary)
+    private func showAdminCodeAlert() {
+        let alert = NSAlert()
+        alert.messageText = "Ativar Admin Mode"
+        alert.informativeText = "Digite o código de administrador para acessar o canal de atualização beta."
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Ativar")
+        alert.addButton(withTitle: "Cancelar")
 
-            Text("Ativar Admin Mode")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(ExTokens.Colors.textPrimary)
+        let input = NSSecureTextField(frame: NSRect(x: 0, y: 0, width: 220, height: 24))
+        input.placeholderString = "Código"
+        alert.accessoryView = input
+        alert.window.initialFirstResponder = input
 
-            Text("Digite o código de administrador para\nacessar o canal de atualização beta.")
-                .font(.system(size: 11))
-                .foregroundColor(ExTokens.Colors.textSecondary)
-                .multilineTextAlignment(.center)
-
-            SecureField("Código", text: $adminCodeInput)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 200)
-                .onSubmit {
-                    attemptAdminActivation()
-                }
-
-            if adminCodeError {
-                Text("Código incorreto")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(ExTokens.Colors.destructive)
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            let code = input.stringValue
+            if settings.verifyAdminCode(code) {
+                adminCodeError = false
+                settings.isAdminMode = true
+            } else {
+                adminCodeError = true
             }
-
-            HStack(spacing: 12) {
-                Button("Cancelar") {
-                    showAdminCodeDialog = false
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(ExTokens.Colors.textSecondary)
-
-                Button("Ativar") {
-                    attemptAdminActivation()
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(adminCodeInput.isEmpty)
-            }
-        }
-        .padding(ExTokens.Spacing._24)
-        .frame(width: 300)
-        .background(ExTokens.Colors.backgroundPrimary)
-    }
-
-    private func attemptAdminActivation() {
-        if settings.verifyAdminCode(adminCodeInput) {
-            settings.isAdminMode = true
-            showAdminCodeDialog = false
-        } else {
-            adminCodeError = true
-            adminCodeInput = ""
         }
     }
 
