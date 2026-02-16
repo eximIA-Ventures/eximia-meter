@@ -1,7 +1,7 @@
 #!/bin/bash
 # ═══════════════════════════════════════════════════════
 #  exímIA Meter — Uninstaller
-#  Usage: curl -fsSL https://raw.githubusercontent.com/hugocapitelli/eximia-meter/main/uninstall.sh | bash
+#  Usage: curl -fsSL https://raw.githubusercontent.com/eximIA-Ventures/eximia-meter/main/uninstall.sh | bash
 # ═══════════════════════════════════════════════════════
 
 set -e
@@ -77,5 +77,5 @@ echo -e "  ${GREEN}${BOLD}  exímIA Meter uninstalled successfully${RESET}"
 echo -e "  ${AMBER}${BOLD}════════════════════════════════════════${RESET}"
 echo ""
 echo -e "  ${GRAY}To reinstall:${RESET}"
-echo -e "  ${WHITE}curl -fsSL https://raw.githubusercontent.com/hugocapitelli/eximia-meter/main/install.sh | bash${RESET}"
+echo -e "  ${WHITE}curl -fsSL https://raw.githubusercontent.com/eximIA-Ventures/eximia-meter/main/install.sh | bash${RESET}"
 echo ""

@@ -490,7 +490,7 @@ struct PopoverContentView: View {
         #!/bin/bash
         set -e
         while kill -0 \(pid) 2>/dev/null; do sleep 0.3; done
-        REPO_URL="https://github.com/hugocapitelli/eximia-meter.git"
+        REPO_URL="https://github.com/eximIA-Ventures/eximia-meter.git"
         TMPDIR_PATH=$(mktemp -d)
         SRC_DIR="$TMPDIR_PATH/eximia-meter"
         trap "rm -rf $TMPDIR_PATH" EXIT
@@ -536,7 +536,7 @@ struct PopoverContentView: View {
 
     private func checkForUpdates() {
         let branch = appViewModel.settingsViewModel.updateChannel.branch
-        let url = URL(string: "https://raw.githubusercontent.com/hugocapitelli/eximia-meter/\(branch)/Info.plist")!
+        let url = URL(string: "https://raw.githubusercontent.com/eximIA-Ventures/eximia-meter/\(branch)/Info.plist")!
         URLSession.shared.dataTask(with: url) { data, response, _ in
             DispatchQueue.main.async {
                 guard let data,

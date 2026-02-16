@@ -1,5 +1,5 @@
 {
-  "name": "eximia-meter",
+  "name": "@eximia-ventures/meter",
   "version": "1.0.0",
   "type": "module",
   "description": "exímIA Meter — macOS menu bar app for monitoring Claude Code usage",
@@ -22,7 +22,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hugocapitelli/eximia-meter.git"
+    "url": "https://github.com/eximIA-Ventures/eximia-meter.git"
   },
   "os": [
     "darwin"
