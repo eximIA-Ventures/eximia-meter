@@ -186,6 +186,16 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v2.8.1", items: [
+                                "Fix: notificações falsas de Weekly Usage com dados estimados",
+                                "Alertas só disparam com dados da API ou local (nunca estimados)",
+                                "Warning suprimido quando Critical dispara no mesmo ciclo"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v2.7.0", items: [
                                 "Menu Bar: indicadores redesenhados com hierarquia visual",
                                 "Labels brancos, valores coloridos, tempo compacto e sutil",
