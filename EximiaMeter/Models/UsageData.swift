@@ -1,9 +1,10 @@
 import Foundation
 
 enum UsageSource {
-    case api        // Layer 1: Anthropic OAuth API (authoritative)
-    case exactLocal // Layer 2: .jsonl exact scan
-    case estimated  // Layer 3: stats-cache × multiplier
+    case api             // Layer 1: Anthropic OAuth API (authoritative)
+    case calibratedLocal // Layer 2b: .jsonl tokens calibrated by saved API ratio
+    case exactLocal      // Layer 2: .jsonl exact scan
+    case estimated       // Layer 3: stats-cache × multiplier
 }
 
 struct UsageData {

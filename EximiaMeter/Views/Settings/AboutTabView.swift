@@ -186,6 +186,16 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v2.9.0", items: [
+                                "Calibração: aprende relação API↔tokens locais para uso preciso offline",
+                                "Source 'Cal.' quando API indisponível e calibração salva existe",
+                                "Rolling window de 20 snapshots com decay temporal (8h max)"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v2.8.1", items: [
                                 "Fix: notificações falsas de Weekly Usage com dados estimados",
                                 "Alertas só disparam com dados da API ou local (nunca estimados)",
