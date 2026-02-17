@@ -17,11 +17,13 @@ final class AnthropicUsageService {
     private var cachedCredentials: Credentials?
     private var credentialsFetched = false
 
-    /// Keychain service names
+    /// Keychain service name (read directly from Claude Code's entry)
     private let originalService = "Claude Code-credentials"
-    private let cachedService = "EximiaMeter-cached-credentials"
 
-    private init() {}
+    private init() {
+        // Clean up legacy cached keychain entry that caused password prompts
+        cleanupLegacyCachedEntry()
+    }
 
     // MARK: - Account Info
 
@@ -57,7 +59,7 @@ final class AnthropicUsageService {
 
         // If token is expired, re-read from original Keychain — CLI may have refreshed it
         if expired {
-            cachedCredentials = readFromOriginalAndCache()
+            cachedCredentials = readCredentials()
             if let refreshed = cachedCredentials {
                 let stillExpired: Bool
                 if let newExpiry = refreshed.expiresAt {
@@ -101,7 +103,7 @@ final class AnthropicUsageService {
 
         // If token expired, re-read from original Keychain (CLI may have refreshed)
         if let expiresAt = credentials.expiresAt, Date().timeIntervalSince1970 * 1000 > Double(expiresAt) {
-            cachedCredentials = readFromOriginalAndCache()
+            cachedCredentials = readCredentials()
             guard let refreshed = cachedCredentials,
                   let newToken = refreshed.accessToken else { return nil }
             if let newExpiry = refreshed.expiresAt, Date().timeIntervalSince1970 * 1000 > Double(newExpiry) {
@@ -123,7 +125,7 @@ final class AnthropicUsageService {
         return parseResponse(data)
     }
 
-    // MARK: - Keychain (with cache layer)
+    // MARK: - Keychain
 
     private struct Credentials {
         let accessToken: String?
@@ -132,40 +134,11 @@ final class AnthropicUsageService {
         let rateLimitTier: String?
     }
 
-    /// Primary read: try app's own cache first, fall back to original.
-    /// Both reads use /usr/bin/security CLI to avoid Keychain password prompts on every update.
+    /// Read credentials directly from Claude Code's keychain entry via security CLI.
+    /// No intermediate cache — avoids Keychain password prompts entirely.
     private func readCredentials() -> Credentials? {
-        // 1. Try app's own cached entry via security CLI (no prompt)
-        if let cached = readViaSecurityCLI(service: cachedService) {
-            let creds = parseKeychainJSON(cached)
-            // Only use if token is not expired
-            if let creds, let expiresAt = creds.expiresAt {
-                if Date().timeIntervalSince1970 * 1000 <= Double(expiresAt) {
-                    return creds
-                }
-                // Expired — fall through to original
-            } else if creds?.accessToken != nil {
-                return creds
-            }
-        }
-
-        // 2. Fall back to original "Claude Code-credentials"
-        return readFromOriginalAndCache()
-    }
-
-    /// Read from original Claude Code keychain entry and save a copy in app's own entry.
-    /// Uses the `security` CLI tool to avoid Keychain GUI prompts — "Always Allow" on the
-    /// system binary persists permanently, unlike our ad-hoc signed app.
-    private func readFromOriginalAndCache() -> Credentials? {
         guard let raw = readViaSecurityCLI(service: originalService) else { return nil }
-        let creds = parseKeychainJSON(raw)
-
-        // Cache the raw JSON in app's own keychain entry (future reads won't prompt)
-        if creds?.accessToken != nil {
-            saveToKeychain(service: cachedService, data: raw)
-        }
-
-        return creds
+        return parseKeychainJSON(raw)
     }
 
     /// Read keychain item using /usr/bin/security CLI (Apple-signed, stable "Always Allow").
@@ -193,32 +166,15 @@ final class AnthropicUsageService {
         return output
     }
 
-    /// Save (or update) data in app's own keychain entry.
-    private func saveToKeychain(service: String, data: String) {
-        guard let passwordData = data.data(using: .utf8) else { return }
-
-        // Try to update existing
-        let searchQuery: [String: Any] = [
+    /// Remove the legacy "EximiaMeter-cached-credentials" keychain entry.
+    /// This entry was created by earlier versions using SecItemAdd and caused
+    /// Keychain password prompts because the security CLI wasn't in its ACL.
+    private func cleanupLegacyCachedEntry() {
+        let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service
+            kSecAttrService as String: "EximiaMeter-cached-credentials"
         ]
-
-        let updateAttrs: [String: Any] = [
-            kSecValueData as String: passwordData
-        ]
-
-        let updateStatus = SecItemUpdate(searchQuery as CFDictionary, updateAttrs as CFDictionary)
-
-        if updateStatus == errSecItemNotFound {
-            // Create new entry
-            let addQuery: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: service,
-                kSecAttrAccount as String: "eximia-meter",
-                kSecValueData as String: passwordData
-            ]
-            SecItemAdd(addQuery as CFDictionary, nil)
-        }
+        SecItemDelete(query as CFDictionary)
     }
 
     /// Parse the JSON credential string from keychain.

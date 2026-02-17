@@ -186,6 +186,16 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v2.9.2", items: [
+                                "Fix: elimina prompt de senha do Keychain definitivamente",
+                                "Remove cache intermediário (EximiaMeter-cached-credentials) que causava prompts",
+                                "Leitura agora direto de Claude Code-credentials via security CLI"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v2.9.1", items: [
                                 "Fix: elimina prompt de senha do Keychain após cada atualização",
                                 "Leitura de credenciais agora 100% via security CLI (Apple-signed)"
