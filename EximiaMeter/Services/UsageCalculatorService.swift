@@ -279,16 +279,22 @@ struct UsageCalculatorService {
     }
 
     private static func calculateWeeklyReset(resetDay: Int) -> TimeInterval {
-        let calendar = Calendar.current
-        let now = Date()
-        let currentWeekday = calendar.component(.weekday, from: now)
-        var daysUntilReset = (resetDay - currentWeekday + 7) % 7
-        if daysUntilReset == 0 { daysUntilReset = 7 }
-        guard let resetDate = calendar.date(byAdding: .day, value: daysUntilReset, to: calendar.startOfDay(for: now)) else { return 0 }
-        return resetDate.timeIntervalSince(now)
+        // Use last known API reset date (rolling window) instead of fixed weekday
+        if let knownReset = CalibrationStore.lastKnownWeeklyResetDate() {
+            let remaining = knownReset.timeIntervalSinceNow
+            if remaining > 0 { return remaining }
+        }
+        // Fallback: 7 full days
+        return 7 * 86400
     }
 
     private static func calculateSessionReset(sessionStart: Date? = nil) -> TimeInterval {
+        // Use last known API session reset date when available
+        if let knownReset = CalibrationStore.lastKnownSessionResetDate() {
+            let remaining = knownReset.timeIntervalSinceNow
+            if remaining > 0 { return remaining }
+        }
+        // Fallback: 5h minus elapsed time since session start
         let sessionDuration: TimeInterval = 5 * 3600
         guard let start = sessionStart else { return sessionDuration }
         return max(sessionDuration - Date().timeIntervalSince(start), 0)

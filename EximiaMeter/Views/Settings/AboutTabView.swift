@@ -186,6 +186,21 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v3.1.0", items: [
+                                "Fix: burn rate agora usa horas ativas (não wall-clock) — taxa realista",
+                                "Fix: projeção semanal com extrapolação linear — previsão precisa",
+                                "Fix: weekly reset usa rolling window da API (não dia fixo)",
+                                "Fix: session reset usa CalibrationStore quando disponível",
+                                "Fix: weeklyTimeElapsed não fica mais negativo",
+                                "Fix: todayVsAverageRatio exclui hoje da média (6 dias anteriores)",
+                                "Novo: Sonnet 4.6 (claude-sonnet-4-6) na distribuição de modelos",
+                                "Fix: preço Haiku atualizado para $1.40/M tokens"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v3.0.0", items: [
                                 "Estabilidade: 10 bug fixes para uso contínuo sem degradação",
                                 "Caches com limites de tamanho e eviction automática (FIFO/LRU)",
