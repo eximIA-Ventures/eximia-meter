@@ -80,21 +80,22 @@ struct UsageData {
     /// Total week duration (7 days in seconds)
     private var totalWeekDuration: TimeInterval { 7 * 86400 }
 
-    /// Time elapsed since the start of the current week
+    /// Time elapsed since the start of the current week (clamped to non-negative)
     var weeklyTimeElapsed: TimeInterval {
-        totalWeekDuration - weeklyResetTimeRemaining
+        max(0, totalWeekDuration - weeklyResetTimeRemaining)
     }
 
-    /// Consumption rate per hour (requires at least 1h of data)
+    /// Consumption rate per active hour (uses WorkTimeService active hours, not wall-clock)
     var burnRatePerHour: Double {
-        guard weeklyTimeElapsed > 3600 else { return 0 }
-        return weeklyUsage / (weeklyTimeElapsed / 3600)
+        guard workSecondsThisWeek > 3600 else { return 0 }
+        return weeklyUsage / (workSecondsThisWeek / 3600)
     }
 
-    /// Projected usage at weekly reset (0.0 - 1.0+)
+    /// Projected usage at weekly reset (linear extrapolation based on wall-clock elapsed time)
     var projectedUsageAtReset: Double {
-        guard burnRatePerHour > 0 else { return weeklyUsage }
-        return weeklyUsage + (burnRatePerHour * (weeklyResetTimeRemaining / 3600))
+        guard weeklyTimeElapsed > 3600 else { return weeklyUsage }
+        let totalDuration = weeklyTimeElapsed + weeklyResetTimeRemaining
+        return weeklyUsage * (totalDuration / weeklyTimeElapsed)
     }
 
     /// Formatted projection for the UI — always shows remaining % at reset
@@ -102,7 +103,7 @@ struct UsageData {
         if weeklyUsage >= 1.0 {
             return "Limite atingido. Reseta em \(weeklyResetFormatted)"
         }
-        if weeklyUsage == 0 || burnRatePerHour == 0 {
+        if weeklyUsage == 0 || weeklyTimeElapsed <= 3600 {
             return ""
         }
 
@@ -110,9 +111,9 @@ struct UsageData {
         let freePercent = max(0, Int((1.0 - min(projected, 1.0)) * 100))
 
         if projected >= 1.0 {
-            // Will hit limit before reset
-            let hoursToLimit = (1.0 - weeklyUsage) / burnRatePerHour
-            return "Limite em ~\(formatTimeInterval(hoursToLimit * 3600)) · 0% livre no reset"
+            // Wall-clock time until 100%: weeklyTimeElapsed * (1 - weeklyUsage) / weeklyUsage
+            let timeToLimit = weeklyTimeElapsed * (1.0 - weeklyUsage) / weeklyUsage
+            return "Limite em ~\(formatTimeInterval(timeToLimit)) · 0% livre no reset"
         } else {
             return "No reset, sobrará \(freePercent)% para uso"
         }
@@ -120,9 +121,8 @@ struct UsageData {
 
     /// True if projected to hit limit before weekly reset
     var projectionIsWarning: Bool {
-        guard burnRatePerHour > 0, weeklyUsage < 1.0 else { return weeklyUsage >= 1.0 }
-        let hoursToLimit = (1.0 - weeklyUsage) / burnRatePerHour
-        return (hoursToLimit * 3600) < weeklyResetTimeRemaining
+        guard weeklyUsage > 0, weeklyUsage < 1.0 else { return weeklyUsage >= 1.0 }
+        return projectedUsageAtReset >= 1.0
     }
 
     // MARK: - Cost Estimation
@@ -220,11 +220,12 @@ struct UsageData {
 
     // MARK: - Peak Detection
 
-    /// Ratio of today's tokens vs 7-day daily average (e.g. 2.5 = 2.5x more than average)
+    /// Ratio of today's tokens vs previous 6-day daily average (excludes today to avoid bias)
     var todayVsAverageRatio: Double {
         guard tokens7d > 0, tokens24h > 0 else { return 0 }
-        let dailyAvg = Double(tokens7d) / 7.0
-        guard dailyAvg > 0 else { return 0 }
+        let previousDaysTokens = tokens7d - tokens24h
+        guard previousDaysTokens > 0 else { return 0 }
+        let dailyAvg = Double(previousDaysTokens) / 6.0
         return Double(tokens24h) / dailyAvg
     }
 

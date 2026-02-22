@@ -7,6 +7,16 @@ struct ChangelogVersion {
 
 enum Changelog {
     static let entries: [ChangelogVersion] = [
+        ChangelogVersion(version: "v3.1.0", items: [
+            "Fix: burn rate agora usa horas ativas (não wall-clock) — taxa realista",
+            "Fix: projeção semanal com extrapolação linear — previsão precisa",
+            "Fix: weekly reset usa rolling window da API (não dia fixo)",
+            "Fix: session reset usa CalibrationStore quando disponível",
+            "Fix: weeklyTimeElapsed não fica mais negativo",
+            "Fix: todayVsAverageRatio exclui hoje da média (6 dias anteriores)",
+            "Novo: Sonnet 4.6 (claude-sonnet-4-6) na distribuição de modelos",
+            "Fix: preço Haiku atualizado para $1.40/M tokens"
+        ]),
         ChangelogVersion(version: "v3.0.0", items: [
             "Estabilidade: 10 bug fixes para uso contínuo sem degradação",
             "Caches com limites de tamanho e eviction automática (FIFO/LRU)",

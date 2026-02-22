@@ -50,6 +50,30 @@ struct CalibrationStore {
         return load().filter { $0.timestamp > cutoff }
     }
 
+    // MARK: - Last Known Reset Dates
+
+    /// Returns the last known weekly reset date from any snapshot, extrapolated to the future
+    static func lastKnownWeeklyResetDate() -> Date? {
+        let allSnapshots = load().sorted { $0.timestamp > $1.timestamp }
+        guard let resetDate = allSnapshots.compactMap({ $0.apiWeeklyResetsAt }).first else { return nil }
+        var date = resetDate
+        while date < Date() {
+            date = date.addingTimeInterval(7 * 86400)
+        }
+        return date
+    }
+
+    /// Returns the last known session reset date from any snapshot, extrapolated to the future
+    static func lastKnownSessionResetDate() -> Date? {
+        let allSnapshots = load().sorted { $0.timestamp > $1.timestamp }
+        guard let resetDate = allSnapshots.compactMap({ $0.apiSessionResetsAt }).first else { return nil }
+        var date = resetDate
+        while date < Date() {
+            date = date.addingTimeInterval(5 * 3600)
+        }
+        return date
+    }
+
     // MARK: - Effective Limits
 
     static func effectiveWeeklyLimit(fallback: Int) -> Int? {

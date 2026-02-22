@@ -2,6 +2,7 @@ import SwiftUI
 
 enum ClaudeModel: String, Codable, CaseIterable, Identifiable {
     case opus = "claude-opus-4-6"
+    case sonnet46 = "claude-sonnet-4-6"
     case sonnet = "claude-sonnet-4-5-20250929"
     case haiku = "claude-haiku-4-5-20251001"
 
@@ -10,6 +11,7 @@ enum ClaudeModel: String, Codable, CaseIterable, Identifiable {
     var displayName: String {
         switch self {
         case .opus: return "Opus 4.6"
+        case .sonnet46: return "Sonnet 4.6"
         case .sonnet: return "Sonnet 4.5"
         case .haiku: return "Haiku 4.5"
         }
@@ -18,6 +20,7 @@ enum ClaudeModel: String, Codable, CaseIterable, Identifiable {
     var shortName: String {
         switch self {
         case .opus: return "Opus"
+        case .sonnet46: return "Sonnet"
         case .sonnet: return "Sonnet"
         case .haiku: return "Haiku"
         }
@@ -26,6 +29,7 @@ enum ClaudeModel: String, Codable, CaseIterable, Identifiable {
     var cliFlag: String {
         switch self {
         case .opus: return "--model opus"
+        case .sonnet46: return "--model sonnet"
         case .sonnet: return "--model sonnet"
         case .haiku: return "--model haiku"
         }
@@ -34,6 +38,7 @@ enum ClaudeModel: String, Codable, CaseIterable, Identifiable {
     var badgeColor: Color {
         switch self {
         case .opus: return Color(hex: "#A855F7")
+        case .sonnet46: return Color(hex: "#3B82F6")
         case .sonnet: return Color(hex: "#3B82F6")
         case .haiku: return ExTokens.Colors.statusSuccess
         }
@@ -42,6 +47,7 @@ enum ClaudeModel: String, Codable, CaseIterable, Identifiable {
     var badgeVariant: ExBadgeVariant {
         switch self {
         case .opus: return .opus
+        case .sonnet46: return .sonnet
         case .sonnet: return .sonnet
         case .haiku: return .haiku
         }
@@ -51,8 +57,9 @@ enum ClaudeModel: String, Codable, CaseIterable, Identifiable {
     var costPerMillionTokens: Double {
         switch self {
         case .opus: return 30.0
+        case .sonnet46: return 6.0
         case .sonnet: return 6.0
-        case .haiku: return 1.60
+        case .haiku: return 1.40
         }
     }
 
@@ -61,6 +68,7 @@ enum ClaudeModel: String, Codable, CaseIterable, Identifiable {
         if let exact = ClaudeModel(rawValue: id) { return exact }
         let lowered = id.lowercased()
         if lowered.contains("opus") { return .opus }
+        if lowered.contains("sonnet-4-6") || lowered.contains("sonnet-4.6") || lowered.contains("sonnet_4_6") { return .sonnet46 }
         if lowered.contains("sonnet") { return .sonnet }
         if lowered.contains("haiku") { return .haiku }
         return nil
