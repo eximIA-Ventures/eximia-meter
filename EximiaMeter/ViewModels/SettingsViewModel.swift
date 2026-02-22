@@ -94,6 +94,9 @@ enum PopoverSize: String, CaseIterable, Identifiable {
 
 @Observable
 class SettingsViewModel {
+    /// When true, suppresses cascading UserDefaults writes from didSet observers
+    private var isBatchingUpdates = false
+
     var thresholds: ThresholdConfig {
         didSet { saveThresholds() }
     }
@@ -101,9 +104,12 @@ class SettingsViewModel {
     var claudePlan: ClaudePlan = .max20x {
         didSet {
             UserDefaults.standard.set(claudePlan.rawValue, forKey: "claudePlan")
+            guard !isBatchingUpdates else { return }
             // Auto-update limits when plan changes
+            isBatchingUpdates = true
             weeklyTokenLimit = claudePlan.weeklyTokenLimit
             sessionTokenLimit = claudePlan.sessionTokenLimit
+            isBatchingUpdates = false
         }
     }
 
@@ -204,6 +210,9 @@ class SettingsViewModel {
     init() {
         let defaults = UserDefaults.standard
 
+        // Suppress cascading writes during initial load
+        isBatchingUpdates = true
+
         if let data = defaults.data(forKey: "thresholds"),
            let decoded = try? JSONDecoder().decode(ThresholdConfig.self, from: data) {
             thresholds = decoded
@@ -254,6 +263,8 @@ class SettingsViewModel {
            let channel = UpdateChannel(rawValue: channelRaw) {
             updateChannel = channel
         }
+
+        isBatchingUpdates = false
 
         // Auto-detect plan from Keychain credentials
         autoDetectPlan()

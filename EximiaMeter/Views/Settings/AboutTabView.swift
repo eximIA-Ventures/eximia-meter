@@ -186,6 +186,19 @@ struct AboutTabView: View {
 
                     if showChangelog {
                         VStack(alignment: .leading, spacing: ExTokens.Spacing._8) {
+                            changelogEntry("v3.0.0", items: [
+                                "Estabilidade: 10 bug fixes para uso contínuo sem degradação",
+                                "Caches com limites de tamanho e eviction automática (FIFO/LRU)",
+                                "Race conditions eliminadas no refresh de dados (NSLock)",
+                                "Timers e observers protegidos contra duplicação",
+                                "Writes excessivos ao UserDefaults reduzidos com dirty flag",
+                                "DateFormatter thread-safe via factory method"
+                            ])
+
+                            Rectangle()
+                                .fill(ExTokens.Colors.borderDefault)
+                                .frame(height: 1)
+
                             changelogEntry("v2.9.2", items: [
                                 "Fix: elimina prompt de senha do Keychain definitivamente",
                                 "Remove cache intermediário (EximiaMeter-cached-credentials) que causava prompts",

@@ -16,6 +16,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     /// Shared reference accessible from views
     static weak var shared: AppDelegate?
 
+    deinit {
+        if let eventMonitor {
+            NSEvent.removeMonitor(eventMonitor)
+        }
+        if let sizeObserver {
+            NotificationCenter.default.removeObserver(sizeObserver)
+        }
+        if let menuBarStyleObserver {
+            NotificationCenter.default.removeObserver(menuBarStyleObserver)
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         AppDelegate.shared = self
@@ -193,6 +205,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     private func setupMenuBarStyleObserver() {
+        // Remove existing observer before creating new one
+        if let menuBarStyleObserver {
+            NotificationCenter.default.removeObserver(menuBarStyleObserver)
+        }
         menuBarStyleObserver = NotificationCenter.default.addObserver(
             forName: Notification.Name("MenuBarStyleChanged"),
             object: nil,
@@ -287,6 +303,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     private func setupSizeObserver() {
+        // Remove existing observer before creating new one
+        if let sizeObserver {
+            NotificationCenter.default.removeObserver(sizeObserver)
+        }
         sizeObserver = NotificationCenter.default.addObserver(
             forName: Notification.Name("PopoverSizeChanged"),
             object: nil,

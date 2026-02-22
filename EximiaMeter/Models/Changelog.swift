@@ -7,6 +7,14 @@ struct ChangelogVersion {
 
 enum Changelog {
     static let entries: [ChangelogVersion] = [
+        ChangelogVersion(version: "v3.0.0", items: [
+            "Estabilidade: 10 bug fixes para uso contínuo sem degradação",
+            "Caches com limites de tamanho e eviction automática (FIFO/LRU)",
+            "Race conditions eliminadas no refresh de dados (NSLock)",
+            "Timers e observers protegidos contra duplicação",
+            "Writes excessivos ao UserDefaults reduzidos com dirty flag",
+            "DateFormatter thread-safe via factory method"
+        ]),
         ChangelogVersion(version: "v2.8.0", items: [
             "Work Time: medidor de horas trabalhadas (Active Window Detection)",
             "Dashboard: seção 'Today / Week' com tempo ativo de coding",

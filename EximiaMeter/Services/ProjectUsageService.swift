@@ -10,9 +10,12 @@ final class ProjectUsageService {
 
     // Cache: filePath → (modificationDate, tokens)
     private var fileCache: [String: (modDate: Date, tokens: Int)] = [:]
+    private let maxFileCacheSize = 500
 
     // Session path cache: sessionId → filePath (avoids scanning all dirs every time)
     private var sessionPathCache: [String: String] = [:]
+    private var sessionPathCacheOrder: [String] = []
+    private let maxSessionCacheSize = 100
 
     private init() {}
 
@@ -71,6 +74,12 @@ final class ProjectUsageService {
             let sessionFile = "\(projectsDir)/\(dirName)/\(sessionId).jsonl"
             if fm.fileExists(atPath: sessionFile) {
                 sessionPathCache[sessionId] = sessionFile
+                sessionPathCacheOrder.append(sessionId)
+                // FIFO eviction when cache exceeds max size
+                while sessionPathCacheOrder.count > maxSessionCacheSize {
+                    let evicted = sessionPathCacheOrder.removeFirst()
+                    sessionPathCache.removeValue(forKey: evicted)
+                }
                 return parseSessionFile(at: sessionFile)
             }
         }
@@ -82,6 +91,20 @@ final class ProjectUsageService {
     func pruneCache() {
         let cutoff = Date().addingTimeInterval(-8 * 86400)
         fileCache = fileCache.filter { $0.value.modDate >= cutoff }
+
+        // Cap fileCache to maxFileCacheSize, keeping most recent by modDate
+        if fileCache.count > maxFileCacheSize {
+            let sorted = fileCache.sorted { $0.value.modDate > $1.value.modDate }
+            fileCache = Dictionary(uniqueKeysWithValues: sorted.prefix(maxFileCacheSize).map { ($0.key, $0.value) })
+        }
+
+        // Prune sessionPathCache: remove entries pointing to non-existent files
+        let fm = FileManager.default
+        let staleKeys = sessionPathCache.filter { !fm.fileExists(atPath: $0.value) }.map(\.key)
+        for key in staleKeys {
+            sessionPathCache.removeValue(forKey: key)
+            sessionPathCacheOrder.removeAll { $0 == key }
+        }
     }
 
     // MARK: - Parsing

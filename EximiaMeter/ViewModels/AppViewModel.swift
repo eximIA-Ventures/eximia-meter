@@ -14,6 +14,8 @@ class AppViewModel: ObservableObject {
 
     private var updateTimer: Timer?
     private var cacheCleanupTimer: Timer?
+    private let refreshLock = NSLock()
+    private var isRefreshing = false
 
     func start() {
         monitorService.start()
@@ -33,6 +35,7 @@ class AppViewModel: ObservableObject {
         cacheCleanupTimer = Timer.scheduledTimer(withTimeInterval: 1800, repeats: true) { [weak self] _ in
             self?.projectUsage.pruneCache()
             self?.workTime.pruneCache()
+            NotificationService.shared.prunePersistedState()
         }
     }
 
@@ -50,21 +53,44 @@ class AppViewModel: ObservableObject {
     }
 
     private func refreshUsageData() {
+        // Prevent overlapping refreshes
+        refreshLock.lock()
+        guard !isRefreshing else {
+            refreshLock.unlock()
+            return
+        }
+        isRefreshing = true
+        refreshLock.unlock()
+
+        // Capture ALL settings values on the main thread before dispatching
+        let weeklyTokenLimit = settingsViewModel.weeklyTokenLimit
+        let sessionTokenLimit = settingsViewModel.sessionTokenLimit
+        let claudePlan = settingsViewModel.claudePlan
+        let notificationsEnabled = settingsViewModel.notificationsEnabled
+        let thresholds = settingsViewModel.thresholds
+        let soundEnabled = settingsViewModel.soundEnabled
+        let inAppPopupEnabled = settingsViewModel.inAppPopupEnabled
+        let systemNotificationsEnabled = settingsViewModel.systemNotificationsEnabled
+        let alertSound = settingsViewModel.alertSound
+
         let limits = UsageCalculatorService.Limits(
-            weeklyTokenLimit: settingsViewModel.weeklyTokenLimit,
-            dailyTokenLimit: settingsViewModel.weeklyTokenLimit / 7,
-            sessionTokenLimit: settingsViewModel.sessionTokenLimit
+            weeklyTokenLimit: weeklyTokenLimit,
+            dailyTokenLimit: weeklyTokenLimit / 7,
+            sessionTokenLimit: sessionTokenLimit
         )
 
         let historyEntries = monitorService.historyEntries
         let statsCache = monitorService.statsCache
         let currentSessionId = historyEntries.last?.sessionId
-        let notificationsEnabled = settingsViewModel.notificationsEnabled
-        let thresholds = settingsViewModel.thresholds
 
         // All heavy work on background thread
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
+            defer {
+                self.refreshLock.lock()
+                self.isRefreshing = false
+                self.refreshLock.unlock()
+            }
 
             // Layer 2: Exact tokens from .jsonl scan (cached — fast after first run)
             let weekAgo = Date().addingTimeInterval(-7 * 86400)
@@ -144,7 +170,7 @@ class AppViewModel: ObservableObject {
             )
 
             usageData.perProjectTokens = perProject
-            usageData.claudePlan = self.settingsViewModel.claudePlan
+            usageData.claudePlan = claudePlan
 
             // Work time (Active Window Detection)
             usageData.workSecondsToday = self.workTime.workSecondsToday()
@@ -158,10 +184,10 @@ class AppViewModel: ObservableObject {
                 AppDelegate.shared?.updateMenuBarIndicators()
 
                 if notificationsEnabled {
-                    NotificationService.shared.soundEnabled = self.settingsViewModel.soundEnabled
-                    NotificationService.shared.inAppPopupEnabled = self.settingsViewModel.inAppPopupEnabled
-                    NotificationService.shared.systemNotificationsEnabled = self.settingsViewModel.systemNotificationsEnabled
-                    NotificationService.shared.alertSound = self.settingsViewModel.alertSound
+                    NotificationService.shared.soundEnabled = soundEnabled
+                    NotificationService.shared.inAppPopupEnabled = inAppPopupEnabled
+                    NotificationService.shared.systemNotificationsEnabled = systemNotificationsEnabled
+                    NotificationService.shared.alertSound = alertSound
                     NotificationService.shared.checkAndNotify(
                         usageData: usageData,
                         thresholds: thresholds
