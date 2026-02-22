@@ -10,6 +10,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     private var notifiedThresholds: Set<String> = []
     private var lastNotifiedAt: [String: Date] = [:]
     private var permissionGranted = false
+    private var stateIsDirty = false
 
     /// Base cooldown (5 min) — after first fire, escalates to extended cooldown
     private let baseCooldown: TimeInterval = 300
@@ -157,6 +158,9 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
                 severity: "warning"
             )
         }
+
+        // Batch-flush dirty state once at the end instead of on every checkpoint
+        flushIfDirty()
     }
 
     func resetNotifications() {
@@ -218,7 +222,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             if notifiedThresholds.contains(id) {
                 notifiedThresholds.remove(id)
                 lastNotifiedAt.removeValue(forKey: id)
-                persistState()
+                markDirty()
             }
         }
     }
@@ -231,7 +235,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
             notifiedThresholds.remove("weekly-critical")
             lastNotifiedAt.removeValue(forKey: "weekly-warning")
             lastNotifiedAt.removeValue(forKey: "weekly-critical")
-            persistState()
+            markDirty()
         }
         lastKnownWeeklyUsage = currentWeeklyUsage
         UserDefaults.standard.set(currentWeeklyUsage, forKey: kLastKnownWeeklyUsage)
@@ -250,7 +254,7 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
         notifiedThresholds.insert(id)
         lastNotifiedAt[id] = Date()
-        persistState()
+        markDirty()
 
         // macOS system notification (Notification Center banner)
         if systemNotificationsEnabled {
@@ -401,12 +405,34 @@ class NotificationService: NSObject, UNUserNotificationCenterDelegate {
 
     // MARK: - Persistence
 
+    private func markDirty() {
+        stateIsDirty = true
+    }
+
+    private func flushIfDirty() {
+        guard stateIsDirty else { return }
+        persistState()
+        stateIsDirty = false
+    }
+
     private func persistState() {
         UserDefaults.standard.set(Array(notifiedThresholds), forKey: kNotifiedThresholds)
 
         // Convert [String: Date] → [String: Double] for UserDefaults
         let intervals = lastNotifiedAt.mapValues { $0.timeIntervalSince1970 }
         UserDefaults.standard.set(intervals, forKey: kLastNotifiedAt)
+    }
+
+    /// Remove stale entries from persisted state (older than 8 days)
+    func prunePersistedState() {
+        let cutoff = Date().addingTimeInterval(-8 * 86400)
+        let staleKeys = lastNotifiedAt.filter { $0.value < cutoff }.map(\.key)
+        guard !staleKeys.isEmpty else { return }
+        for key in staleKeys {
+            lastNotifiedAt.removeValue(forKey: key)
+            notifiedThresholds.remove(key)
+        }
+        persistState()
     }
 
     private func loadPersistedState() {

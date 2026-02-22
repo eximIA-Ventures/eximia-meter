@@ -11,21 +11,24 @@ final class WorkTimeService {
 
     // Cache: filePath → (modDate, workSeconds) — immutable for closed sessions
     private var fileCache: [String: (modDate: Date, seconds: TimeInterval)] = [:]
+    private let maxFileCacheSize = 500
 
     // Daily aggregated cache: "YYYY-MM-DD" → total seconds
     private var dailyCache: [String: TimeInterval] = [:]
+    private let maxDailyCacheDays = 10
 
     // Constants
     private let gapThreshold: TimeInterval = 20 * 60   // 20 min — beyond this is a break
     private let bufferAfter: TimeInterval = 5 * 60      // 5 min — reading time after last response
     private let minWorkSegment: TimeInterval = 10        // 10 sec — ignore trivial gaps
 
-    private let dateFormatter: DateFormatter = {
+    /// Thread-safe: create a new DateFormatter per call site instead of sharing one
+    private static func makeDateFormatter() -> DateFormatter {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
         f.timeZone = .current
         return f
-    }()
+    }
 
     private init() {}
 
@@ -33,7 +36,8 @@ final class WorkTimeService {
 
     /// Total active work seconds for today
     func workSecondsToday() -> TimeInterval {
-        let today = dateFormatter.string(from: Date())
+        let fmt = Self.makeDateFormatter()
+        let today = fmt.string(from: Date())
         let startOfDay = Calendar.current.startOfDay(for: Date())
         return workSeconds(since: startOfDay, dateKey: today, allowCached: false)
     }
@@ -41,11 +45,12 @@ final class WorkTimeService {
     /// Total active work seconds for the current week (last 7 days)
     func workSecondsThisWeek() -> TimeInterval {
         let cal = Calendar.current
+        let fmt = Self.makeDateFormatter()
         var total: TimeInterval = 0
 
         for daysAgo in 0..<7 {
             let date = cal.date(byAdding: .day, value: -daysAgo, to: Date())!
-            let key = dateFormatter.string(from: date)
+            let key = fmt.string(from: date)
             let startOfDay = cal.startOfDay(for: date)
 
             if daysAgo == 0 {
@@ -87,10 +92,23 @@ final class WorkTimeService {
         return "\(mins)m"
     }
 
-    /// Prune cache entries older than 8 days
+    /// Prune cache entries older than 8 days and cap sizes
     func pruneCache() {
-        let cutoff = dateFormatter.string(from: Date().addingTimeInterval(-8 * 86400))
+        let fmt = Self.makeDateFormatter()
+        let cutoff = fmt.string(from: Date().addingTimeInterval(-8 * 86400))
         dailyCache = dailyCache.filter { $0.key >= cutoff }
+
+        // Cap dailyCache to maxDailyCacheDays (keep most recent)
+        if dailyCache.count > maxDailyCacheDays {
+            let sorted = dailyCache.sorted { $0.key > $1.key }
+            dailyCache = Dictionary(uniqueKeysWithValues: sorted.prefix(maxDailyCacheDays).map { ($0.key, $0.value) })
+        }
+
+        // Cap fileCache to maxFileCacheSize (keep most recent by modDate)
+        if fileCache.count > maxFileCacheSize {
+            let sorted = fileCache.sorted { $0.value.modDate > $1.value.modDate }
+            fileCache = Dictionary(uniqueKeysWithValues: sorted.prefix(maxFileCacheSize).map { ($0.key, $0.value) })
+        }
     }
 
     // MARK: - Core Calculation

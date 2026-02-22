@@ -10,6 +10,7 @@ class CLIMonitorService {
     private var fileDescriptor: Int32 = -1
     private var dispatchSource: DispatchSourceFileSystemObject?
     private var pollingTimer: Timer?
+    private var isRunning = false
 
     private let claudeDir: String
     private let statsCachePath: String
@@ -23,12 +24,15 @@ class CLIMonitorService {
     }
 
     func start() {
+        guard !isRunning else { return }
+        isRunning = true
         loadData()
         startFileWatcher()
         startPolling()
     }
 
     func stop() {
+        isRunning = false
         dispatchSource?.cancel()
         dispatchSource = nil
         if fileDescriptor >= 0 {
@@ -70,6 +74,14 @@ class CLIMonitorService {
     // MARK: - File Watching (FSEvents via DispatchSource)
 
     private func startFileWatcher() {
+        // Cancel existing source before creating new one
+        dispatchSource?.cancel()
+        dispatchSource = nil
+        if fileDescriptor >= 0 {
+            close(fileDescriptor)
+            fileDescriptor = -1
+        }
+
         let path = statsCachePath
 
         fileDescriptor = open(path, O_EVTONLY)
@@ -99,6 +111,8 @@ class CLIMonitorService {
     // MARK: - Polling Fallback
 
     private func startPolling(interval: TimeInterval = 30) {
+        // Invalidate existing timer before creating new one
+        pollingTimer?.invalidate()
         pollingTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             self?.loadData()
         }
